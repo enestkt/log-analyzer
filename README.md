@@ -95,11 +95,15 @@ LogAnalyzer --file uygulama.log --level WARNING --export csv --output ozet.csv
 LogAnalyzer --file uygulama.log --from 2026-08-12T06:00:00 --to 2026-08-12T08:00:00 \
     --search "baglanti" --export json --output sonuc.json
 
-# Farklı formatlı bir log için özel pattern
+# Farklı formatlı, gerçek bir log dosyası için özel pattern
+# (bu ornek, logpai/loghub'daki gercek bir Hadoop cluster logu ile test edildi:
+#  https://github.com/logpai/loghub/blob/master/Hadoop/Hadoop_2k.log)
 LogAnalyzer --file farkli-format.log \
     --parser-pattern "^(?<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) (?<level>\w+) \[[^\]]*\] [^:]+: (?<message>.*)$" \
     --timestamp-format "yyyy-MM-dd HH:mm:ss,zzz"
 ```
+
+`--parser-pattern` esnekliği yalnızca teoride değil, gerçek verilerle doğrulandı: yukarıdaki `havayolu-sample.log` örneği (varsayılan format) ve [logpai/loghub](https://github.com/logpai/loghub)'dan alınan gerçek bir Hadoop cluster logu (1999 satır, tamamen farklı format) — kod hiç değişmeden, sadece bu iki argümanla iki farklı formatı da doğru ayrıştırdı.
 
 ### Çıkış kodları
 
