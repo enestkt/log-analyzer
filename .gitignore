@@ -1,0 +1,15 @@
+# Build output
+build/
+CMakeLists.txt.user*
+
+# Qt Creator
+.qtcreator/
+
+# Program output (generated at runtime, not source)
+out*.csv
+out*.json
+*.log.csv
+*.log.json
+
+# Third-party test data (not ours to redistribute) - see README for source
+Hadoop_2k.log

@@ -1,0 +1,55 @@
+[2026-08-12 06:01:03] INFO: Sistem baslatildi, modul=CheckInService, versiyon=3.4.1
+[2026-08-12 06:01:04] INFO: Veritabani baglantisi kuruldu, host=db-checkin-01
+[2026-08-12 06:02:11] INFO: Ucus arama istegi alindi, kalkis=IST varis=JFK tarih=2026-08-15
+[2026-08-12 06:02:11] DEBUG: Cache miss, sorgu veritabanina yonlendirildi
+[2026-08-12 06:02:12] INFO: 14 ucus sonucu donduruldu, sure_ms=182
+[2026-08-12 06:04:45] INFO: Rezervasyon olusturuldu, pnr=TK7X2A, yolcu_sayisi=2
+[2026-08-12 06:05:02] WARNING: Odeme servisi yaniti gecikti, sure_ms=4310, esik_ms=3000
+[2026-08-12 06:05:06] INFO: Odeme onaylandi, pnr=TK7X2A, tutar=4280.00TRY
+[2026-08-12 06:07:19] ERROR: Koltuk secim servisi zaman asimina ugradi, pnr=TK7X2A, servis=SeatMapService
+[2026-08-12 06:07:20] INFO: Otomatik koltuk atamasi yapildi, pnr=TK7X2A, koltuk=14C
+[2026-08-12 06:11:34] INFO: Bagaj bilgisi kaydedildi, pnr=TK7X2A, adet=2, toplam_kg=32
+[2026-08-12 06:14:02] WARNING: Bagaj agirligi limit yakininda, pnr=TK7X2A, agirlik_kg=32, limit_kg=32
+[2026-08-12 06:18:47] INFO: Check-in tamamlandi, pnr=TK7X2A, kapi=B12
+--- corrupted line, sensor buffer overflow, skip ---
+[2026-08-12 06:22:15] ERROR: Bağlantı koptu, tekrar denendi, servis=BoardingGateSystem, deneme=1
+[2026-08-12 06:22:19] ERROR: Bağlantı koptu, tekrar denendi, servis=BoardingGateSystem, deneme=2
+[2026-08-12 06:22:26] INFO: Bağlantı yeniden kuruldu, servis=BoardingGateSystem
+[2026-08-12 06:25:03] INFO: Ucus arama istegi alindi, kalkis=ESB varis=CGN tarih=2026-08-14
+[2026-08-12 06:25:04] INFO: 6 ucus sonucu donduruldu, sure_ms=97
+[2026-08-12 06:31:18] INFO: Rezervasyon olusturuldu, pnr=TK9M4L, yolcu_sayisi=1
+[2026-08-12 06:31:40] ERROR: Odeme reddedildi, pnr=TK9M4L, sebep=yetersiz_bakiye
+[2026-08-12 06:31:41] WARNING: Rezervasyon beklemede birakildi, pnr=TK9M4L, sure_dk=15
+[2026-08-12 06:40:22] INFO: Yolcu odeme yontemini degistirdi, pnr=TK9M4L
+[2026-08-12 06:40:29] INFO: Odeme onaylandi, pnr=TK9M4L, tutar=1890.00TRY
+[2026-08-12 07:02:11] INFO: Check-in tamamlandi, pnr=TK9M4L, kapi=A03
+[2026-08-12 07:15:38] CRITICAL: Veritabani baglantisi koptu, host=db-checkin-01, aktif_baglanti=0
+[2026-08-12 07:15:39] CRITICAL: Yedek veritabanina gecis basladi, host=db-checkin-02
+[2026-08-12 07:15:44] INFO: Yedek veritabani aktif, host=db-checkin-02, gecis_sure_ms=5210
+[2026-08-12 07:15:45] WARNING: Son 5 saniyedeki 3 istek zaman asimina ugradi
+[2026-08-12 07:20:01] INFO: Ucus arama istegi alindi, kalkis=AYT varis=DUS tarih=2026-08-20
+[2026-08-12 07:20:02] INFO: 9 ucus sonucu donduruldu, sure_ms=145
+[2026-08-12 07:23:55] INFO: Rezervasyon olusturuldu, pnr=TK3B8K, yolcu_sayisi=4
+[2026-08-12 07:24:30] INFO: Odeme onaylandi, pnr=TK3B8K, tutar=8760.00TRY
+[2026-08-12 07:26:12] WARNING: Bagaj agirligi limit asildi, pnr=TK3B8K, agirlik_kg=38, limit_kg=32, ek_ucret=450TRY
+[2026-08-12 07:29:40] INFO: Bagaj ek ucreti tahsil edildi, pnr=TK3B8K
+[2026-08-12 07:33:02] INFO: Check-in tamamlandi, pnr=TK3B8K, kapi=B12
+[2026-08-12 07:41:17] ERROR: Bağlantı koptu, tekrar denendi, servis=SeatMapService, deneme=1
+[2026-08-12 07:41:22] ERROR: Bağlantı koptu, tekrar denendi, servis=SeatMapService, deneme=2
+[2026-08-12 07:41:29] ERROR: Bağlantı koptu, tekrar denendi, servis=SeatMapService, deneme=3
+[2026-08-12 07:41:30] CRITICAL: SeatMapService devre disi birakildi, otomatik koltuk atamasina gecildi
+[2026-08-12 08:02:44] INFO: Ucus arama istegi alindi, kalkis=IST varis=LHR tarih=2026-08-13
+[2026-08-12 08:02:45] INFO: 11 ucus sonucu donduruldu, sure_ms=210
+[2026-08-12 08:05:19] INFO: Rezervasyon olusturuldu, pnr=TK5H1P, yolcu_sayisi=1
+[2026-08-12 08:05:44] INFO: Odeme onaylandi, pnr=TK5H1P, tutar=3120.00TRY
+[2026-08-12 08:07:02] INFO: Check-in tamamlandi, pnr=TK5H1P, kapi=C07
+[2026-08-12 08:12:33] DEBUG: Periyodik durum kontrolu calisti, servis=CheckInService, durum=saglikli
+[2026-08-12 08:19:47] WARNING: Odeme servisi yaniti gecikti, sure_ms=3540, esik_ms=3000
+[2026-08-12 08:20:01] INFO: Ucus arama istegi alindi, kalkis=SAW varis=BER tarih=2026-08-16
+[2026-08-12 08:20:02] INFO: 5 ucus sonucu donduruldu, sure_ms=88
+[2026-08-12 08:24:16] INFO: Rezervasyon olusturuldu, pnr=TK2Q9Z, yolcu_sayisi=3
+[2026-08-12 08:24:50] ERROR: Odeme reddedildi, pnr=TK2Q9Z, sebep=kart_limiti
+[2026-08-12 08:25:10] ERROR: Odeme reddedildi, pnr=TK2Q9Z, sebep=kart_limiti
+[2026-08-12 08:25:41] WARNING: Rezervasyon iptal edildi, pnr=TK2Q9Z, sebep=odeme_basarisiz
+[2026-08-12 09:01:09] INFO: Sistem gunluk bakim modundan cikti
+[2026-08-12 09:01:10] INFO: Tum servisler saglikli, aktif_kullanici=1842
