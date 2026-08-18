@@ -6,146 +6,178 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>941</width>
-    <height>694</height>
+    <width>1150</width>
+    <height>760</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>LogAnalyzer</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="">
-    <property name="geometry">
-     <rect>
-      <x>90</x>
-      <y>10</y>
-      <width>721</width>
-      <height>571</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="verticalLayout">
-     <item>
-      <widget class="QLineEdit" name="searchLineEdit">
-       <property name="text">
-        <string/>
-       </property>
-       <property name="placeholderText">
-        <string>Aranacak kelime veya regex (opsiyonel)</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="openFileButton">
-       <property name="text">
-        <string>Dosya Seç</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="filePathLabel">
-       <property name="text">
-        <string>Dosya seçilmedi</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="patternLineEdit">
-       <property name="placeholderText">
-        <string>Ozel parser pattern (opsiyonel) - orn: ^\[...\]</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="timestampFormatLineEdit">
-       <property name="text">
-        <string/>
-       </property>
-       <property name="placeholderText">
-        <string>yyyy-MM-dd HH:mm:ss (opsiyonel)</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="levelComboBox">
-       <item>
+   <layout class="QHBoxLayout" name="mainHorizontalLayout">
+    <item>
+     <layout class="QVBoxLayout" name="leftVerticalLayout">
+      <item>
+       <widget class="QLabel" name="recentFilesTitleLabel">
         <property name="text">
-         <string>Tümü</string>
+         <string>Son Açılan Dosyalar</string>
         </property>
-       </item>
-       <item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QListWidget" name="recentFilesListWidget">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>100</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="openFileButton">
         <property name="text">
-         <string>TRACE</string>
+         <string>Dosya Seç</string>
         </property>
-       </item>
-       <item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="filePathLabel">
         <property name="text">
-         <string>DEBUG</string>
+         <string>Dosya seçilmedi</string>
         </property>
-       </item>
-       <item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="searchLineEdit">
+        <property name="placeholderText">
+         <string>Aranacak kelime veya regex (opsiyonel)</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="patternLineEdit">
+        <property name="placeholderText">
+         <string>Ozel parser pattern (opsiyonel) - orn: ^\[...\]</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="timestampFormatLineEdit">
+        <property name="placeholderText">
+         <string>yyyy-MM-dd HH:mm:ss (opsiyonel)</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="levelComboBox">
+        <item>
+         <property name="text">
+          <string>Tümü</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>TRACE</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>DEBUG</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>INFO</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>WARNING</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>ERROR</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>CRITICAL</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="buttonRowLayout">
+        <item>
+         <widget class="QPushButton" name="searchButton">
+          <property name="text">
+           <string>Ara</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="exportButton">
+          <property name="text">
+           <string>Dışa Aktar</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QLabel" name="resultCountLabel">
         <property name="text">
-         <string>INFO</string>
+         <string>Sonuç: -</string>
         </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>WARNING</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>ERROR</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>CRITICAL</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="resultCountLabel">
-       <property name="text">
-        <string>Sonuç: -</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="searchButton">
-       <property name="text">
-        <string>Ara</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QTableWidget" name="resultTableWidget">
-       <column>
-        <property name="text">
-         <string>Tarih</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Seviye</string>
-        </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Mesaj</string>
-        </property>
-       </column>
-      </widget>
-     </item>
-    </layout>
-   </widget>
+       </widget>
+      </item>
+      <item>
+       <widget class="QTableWidget" name="resultTableWidget">
+        <column>
+         <property name="text">
+          <string>Tarih</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Seviye</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Mesaj</string>
+         </property>
+        </column>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QWidget" name="chartContainer" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>500</width>
+        <height>0</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>941</width>
+     <width>1150</width>
      <height>25</height>
     </rect>
    </property>

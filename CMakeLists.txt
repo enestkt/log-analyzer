@@ -51,9 +51,17 @@ qt_add_executable(LogAnalyzerGui
     main_gui.cpp
     ${CORE_SOURCES}
 
+    src/export/IExporter.h
+    src/export/CsvExporter.h
+    src/export/CsvExporter.cpp
+    src/export/JsonExporter.h
+    src/export/JsonExporter.cpp
+
     src/ui/mainwindow.h
     src/ui/mainwindow.cpp
     src/ui/mainwindow.ui
+    src/ui/RecentFiles.h
+    src/ui/RecentFiles.cpp
 )
 
 target_include_directories(LogAnalyzerGui PRIVATE src)
