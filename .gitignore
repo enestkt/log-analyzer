@@ -10,6 +10,8 @@ out*.csv
 out*.json
 *.log.csv
 *.log.json
+*_out.csv
+*_out.json
 
 # Third-party test data (not ours to redistribute) - see README for source
 Hadoop_2k.log

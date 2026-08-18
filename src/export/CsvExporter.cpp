@@ -44,29 +44,4 @@ bool CsvExporter::exportTo(const QVector<LogEntry> &entries,
             << csvEscape(entry.message) << '\n';
     }
     return true;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
