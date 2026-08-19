@@ -1,4 +1,5 @@
 #include <QCoreApplication>
+#include <QFileInfo>
 #include <QTextStream>
 #include <QVector>
 #include <memory>
@@ -75,6 +76,8 @@ int main(int argc, char *argv[])
 
     LogStats stats;
     QVector<LogEntry> filteredEntries;
+    QStringList sources;   // filteredEntries ile ayni sirada, hangi dosyadan geldigi
+    const QString sourceName = QFileInfo(options.filePath()).fileName();
 
     // --- Tek gecisli (single-pass) akis: dosya asla tamami belleğe alinmadan okunur ---
     while (!reader.atEnd()) {
@@ -90,8 +93,10 @@ int main(int argc, char *argv[])
         const bool passedFilter = filter.matches(entry);
         stats.addEntry(entry, passedFilter);
 
-        if (passedFilter)
+        if (passedFilter) {
             filteredEntries.append(entry);
+            sources.append(sourceName);
+        }
     }
 
     reader.close();
@@ -105,7 +110,7 @@ int main(int argc, char *argv[])
         : std::unique_ptr<IExporter>(std::make_unique<JsonExporter>());
 
         QString exportError;
-        if (!exporter->exportTo(filteredEntries, stats.result(), options.outputPath(), exportError)) {
+        if (!exporter->exportTo(filteredEntries, sources, stats.result(), options.outputPath(), exportError)) {
             cerr << exportError << '\n';
             return 3;
         }

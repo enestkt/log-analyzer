@@ -8,6 +8,7 @@
 #include <QChart>
 #include <QChartView>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QHeaderView>
 #include <QListWidgetItem>
 #include <QMessageBox>
@@ -16,6 +17,7 @@
 #include <QVBoxLayout>
 #include <QValueAxis>
 #include <memory>
+#include <utility>
 
 #include "../core/FileLogReader.h"
 #include "../core/LogEntry.h"
@@ -124,31 +126,36 @@ void MainWindow::refreshRecentFilesList()
 
 void MainWindow::onOpenFileClicked()
 {
-    const QString path = QFileDialog::getOpenFileName(this, QStringLiteral("Log dosyasi sec"),
+    // getOpenFileNames (COGUL) -- kullanici Ctrl/Shift ile birden fazla dosya secebilir.
+    const QStringList paths = QFileDialog::getOpenFileNames(this, QStringLiteral("Log dosyasi (veya dosyalari) sec"),
                                                       QString(),
                                                       QStringLiteral("Log dosyalari (*.log *.txt);;Tum dosyalar (*)"));
-    if (path.isEmpty())
+    if (paths.isEmpty())
         return;
 
-    m_filePath = path;
-    ui->filePathLabel->setText(path);
+    m_filePaths = paths;
+    ui->filePathLabel->setText(m_filePaths.size() == 1
+        ? m_filePaths.first()
+        : QStringLiteral("%1 dosya secildi").arg(m_filePaths.size()));
 
-    m_recentFiles->add(path);
+    for (const QString &path : paths)
+        m_recentFiles->add(path);
     refreshRecentFilesList();
 }
 
 void MainWindow::onRecentFileClicked(QListWidgetItem *item)
 {
-    m_filePath = item->text();
-    ui->filePathLabel->setText(m_filePath);
+    // Son acilanlardan tiklamak, secimi TEK dosyaya cevirir (coklu secim burada yapilmaz).
+    m_filePaths = { item->text() };
+    ui->filePathLabel->setText(item->text());
 
-    m_recentFiles->add(m_filePath);
+    m_recentFiles->add(item->text());
     refreshRecentFilesList();
 }
 
 void MainWindow::onSearchClicked()
 {
-    if (m_filePath.isEmpty()) {
+    if (m_filePaths.isEmpty()) {
         QMessageBox::warning(this, QStringLiteral("Dosya secilmedi"),
                              QStringLiteral("Once bir log dosyasi secmelisin."));
         return;
@@ -182,15 +189,7 @@ void MainWindow::onSearchClicked()
         return;
     }
 
-    // --- Dosyayi ac ---
-    FileLogReader reader;
-    QString readerError;
-    if (!reader.open(m_filePath, readerError)) {
-        QMessageBox::critical(this, QStringLiteral("Dosya hatasi"), readerError);
-        return;
-    }
-
-    // --- Filtreyi kur ---
+    // --- Filtreyi kur (tum dosyalar icin ortak) ---
     LogFilter filter;
     if (!ui->searchLineEdit->text().isEmpty())
         filter.setSearchPattern(QRegularExpression(ui->searchLineEdit->text()));
@@ -199,35 +198,55 @@ void MainWindow::onSearchClicked()
     if (levelText != QStringLiteral("Tümü"))
         filter.setMinLevel(logLevelFromString(levelText));
 
-    // --- Oku, filtrele, say (main.cpp'deki dongunun aynisi) ---
+    // --- Her dosyayi sirayla ac, oku, filtrele, say ---
+    // LogStats zaten "akis boyunca biriktiren" bir sinif oldugu icin, birden fazla
+    // dosya uzerinde ust uste cagirmak sorun degil -- CLI'deki tek dosyalik dongunun
+    // AYNISI, sadece disina bir "her dosya icin" dongusu eklendi.
     LogStats stats;
     QVector<LogEntry> filteredEntries;
+    QStringList sources;   // filteredEntries ile ayni sirada, hangi dosyadan geldigi
 
-    while (!reader.atEnd()) {
-        const QString line = reader.readLine();
-        stats.addRawLineSeen();
-
-        LogEntry entry;
-        if (!parser->parseLine(line, entry)) {
-            stats.addUnparsedLine();
-            continue;
+    for (const QString &filePath : std::as_const(m_filePaths)) {
+        FileLogReader reader;
+        QString readerError;
+        if (!reader.open(filePath, readerError)) {
+            QMessageBox::critical(this, QStringLiteral("Dosya hatasi"),
+                                   QStringLiteral("%1: %2").arg(filePath, readerError));
+            return;
         }
 
-        const bool passedFilter = filter.matches(entry);
-        stats.addEntry(entry, passedFilter);
+        const QString sourceName = QFileInfo(filePath).fileName();
 
-        if (passedFilter)
-            filteredEntries.append(entry);
+        while (!reader.atEnd()) {
+            const QString line = reader.readLine();
+            stats.addRawLineSeen();
+
+            LogEntry entry;
+            if (!parser->parseLine(line, entry)) {
+                stats.addUnparsedLine();
+                continue;
+            }
+
+            const bool passedFilter = filter.matches(entry);
+            stats.addEntry(entry, passedFilter);
+
+            if (passedFilter) {
+                filteredEntries.append(entry);
+                sources.append(sourceName);
+            }
+        }
+        reader.close();
     }
-    reader.close();
 
     m_lastResults = filteredEntries;
+    m_lastSources = sources;
     m_lastStats = stats.result();
 
     // --- Sonucu goster: artik parse edilemeyen sayisi da gorunuyor ---
     ui->resultCountLabel->setText(
-        QStringLiteral("Sonuc: %1  (Toplam satir: %2, Ayristirilamayan: %3)")
+        QStringLiteral("Sonuc: %1  (%2 dosya, toplam satir: %3, ayristirilamayan: %4)")
             .arg(filteredEntries.size())
+            .arg(m_filePaths.size())
             .arg(m_lastStats.totalLines)
             .arg(m_lastStats.unparsedLines));
 
@@ -237,6 +256,7 @@ void MainWindow::onSearchClicked()
         ui->resultTableWidget->setItem(row, 0, new QTableWidgetItem(entry.timestamp.toString(Qt::ISODate)));
         ui->resultTableWidget->setItem(row, 1, new QTableWidgetItem(logLevelToString(entry.level)));
         ui->resultTableWidget->setItem(row, 2, new QTableWidgetItem(entry.message));
+        ui->resultTableWidget->setItem(row, 3, new QTableWidgetItem(m_lastSources.at(row)));
     }
     ui->resultTableWidget->resizeRowsToContents();
 
@@ -286,7 +306,7 @@ void MainWindow::onExportClicked()
         : std::unique_ptr<IExporter>(std::make_unique<CsvExporter>());
 
     QString exportError;
-    if (!exporter->exportTo(m_lastResults, m_lastStats, path, exportError)) {
+    if (!exporter->exportTo(m_lastResults, m_lastSources, m_lastStats, path, exportError)) {
         QMessageBox::critical(this, QStringLiteral("Disa aktarma hatasi"), exportError);
         return;
     }

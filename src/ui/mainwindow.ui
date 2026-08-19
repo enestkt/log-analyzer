@@ -37,7 +37,7 @@
       <item>
        <widget class="QPushButton" name="openFileButton">
         <property name="text">
-         <string>Dosya Seç</string>
+         <string>Dosya(lar) Seç</string>
         </property>
        </widget>
       </item>
@@ -148,6 +148,11 @@
         <column>
          <property name="text">
           <string>Mesaj</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Kaynak</string>
          </property>
         </column>
        </widget>

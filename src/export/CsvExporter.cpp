@@ -21,6 +21,7 @@ QString csvEscape(const QString &field)
 }
 
 bool CsvExporter::exportTo(const QVector<LogEntry> &entries,
+                           const QStringList &sources,
                            const LogStatsResult &stats,
                            const QString &path,
                            QString &error) const
@@ -37,11 +38,14 @@ bool CsvExporter::exportTo(const QVector<LogEntry> &entries,
     out.setEncoding(QStringConverter::Utf8);
     out.setGenerateByteOrderMark(true);
 
-    out <<"timestamp; level; message \n";
-    for(const LogEntry &entry : entries) {
+    out <<"timestamp; level; message; source \n";
+    for(int i = 0; i < entries.size(); ++i) {
+        const LogEntry &entry = entries.at(i);
+        const QString source = (i < sources.size()) ? sources.at(i) : QString();
         out<<csvEscape(entry.timestamp.toString(Qt::ISODate)) << ';'
             << csvEscape(logLevelToString(entry.level)) << ';'
-            << csvEscape(entry.message) << '\n';
+            << csvEscape(entry.message) << ';'
+            << csvEscape(source) << '\n';
     }
     return true;
 }

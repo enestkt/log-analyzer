@@ -10,16 +10,19 @@
 #include "../core/LogStats.h"
 
 bool JsonExporter::exportTo(const QVector<LogEntry> &entries,
+                          const QStringList &sources,
                           const LogStatsResult &stats,
                           const QString &path,
                           QString &error) const
 {
     QJsonArray entriesArray;
-    for(const LogEntry &entry : entries){
+    for(int i = 0; i < entries.size(); ++i){
+        const LogEntry &entry = entries.at(i);
         QJsonObject obj;
         obj["timestamp"] = entry.timestamp.toString(Qt::ISODate);
         obj["level"] = logLevelToString(entry.level);
         obj["message"] = entry.message;
+        obj["source"] = (i < sources.size()) ? sources.at(i) : QString();
         entriesArray.append(obj);
     }
 

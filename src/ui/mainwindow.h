@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QString>
+#include <QStringList>
 #include <QVector>
 
 #include "../core/LogEntry.h"
@@ -38,8 +39,9 @@ private:
     Ui::MainWindow *ui;
     RecentFiles *m_recentFiles;
 
-    QString m_filePath;
+    QStringList m_filePaths;
     QVector<LogEntry> m_lastResults;
+    QStringList m_lastSources;   // m_lastResults ile ayni sirada, hangi dosyadan geldigi
     LogStatsResult m_lastStats;
 
     QChart *m_chart;
