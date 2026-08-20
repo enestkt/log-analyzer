@@ -24,8 +24,6 @@ set(CORE_SOURCES
     src/core/LogFilter.cpp
     src/core/LogStats.h
     src/core/LogStats.cpp
-    src/core/EventCounter.h
-    src/core/EventCounter.cpp
 )
 
 # --- CLI ---

@@ -37,8 +37,7 @@ LogAnalyzer/
     │   ├── ILogReader.h         "satır satır oku" sözleşmesi
     │   ├── FileLogReader.h/.cpp    QFile/QTextStream ile streaming okuma
     │   ├── LogFilter.h/.cpp    zaman / seviye / arama kriterleri
-    │   ├── LogStats.h/.cpp     akış sırasında biriken istatistik
-    │   └── EventCounter.h/.cpp  adlandırılmış olay kalıplarını aylık sayar (henüz hiçbir arayüze bağlanmadı)
+    │   └── LogStats.h/.cpp     akış sırasında biriken istatistik
     ├── export/                 ── dışa aktarma katmanı ──
     │   ├── IExporter.h         "sonucu dosyaya yaz" sözleşmesi
     │   ├── CsvExporter.h/.cpp
@@ -142,4 +141,3 @@ LogAnalyzer --file farkli-format.log \
 - Tek thread — paralel okuma/işleme yoktur. CLI zaten tek dosya işler; GUI'de çoklu dosyalar da sırayla (paralel değil) okunur.
 - GUI'de çoklu dosya taramasında bir dosya açılamazsa, o ana kadar okunan diğer dosyaların sonuçları da gösterilmeden arama iptal olur.
 - gzip gibi sıkıştırılmış log dosyaları desteklenmez.
-- `EventCounter` sınıfı yazılmış ama henüz CLI'ye de GUI'ye de bağlanmadı.
