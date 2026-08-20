@@ -1,26 +1,33 @@
 # LogAnalyzer
 
-Büyük log dosyalarını (cihaz logları, uygulama logları) satır satır okuyan, filtreleyen, istatistik çıkaran ve CSV/JSON olarak dışa aktaran bir komut satırı aracı. Qt 6 Widgets/GUI kullanmaz — saf `Qt6::Core` üzerine kurulu bir CLI aracıdır.
+Büyük log dosyalarını (cihaz logları, uygulama logları) satır satır okuyan, filtreleyen, istatistik çıkaran ve CSV/JSON olarak dışa aktaran bir araç. İki ayrı çalıştırılabilir olarak gelir ve ikisi de aynı `core/`/`export/` mantığını paylaşır:
+
+- **`LogAnalyzer`** — saf `Qt6::Core` üzerine kurulu, komut satırı aracı.
+- **`LogAnalyzerGui`** — `Qt6::Widgets` + `Qt6::Charts` ile yazılmış masaüstü arayüzü; çoklu dosya seçimi, sonuç tablosu, grafik ve son açılan dosyalar listesi içerir.
 
 ## Özellikler
 
 | Özellik | Açıklama |
 |---|---|
 | Büyük dosya desteği | Dosya asla tamamen belleğe alınmaz, satır satır okunur — bellek kullanımı dosya boyutundan bağımsız sabit kalır |
-| Yapılandırılabilir format | Log formatı koda sabitlenmemiştir; `--parser-pattern` ile herhangi bir formata uyarlanabilir |
-| Zaman aralığı filtresi | `--from` / `--to` ile belirli bir zaman penceresine daralt |
-| Seviye eşiği filtresi | `--level WARNING` gibi bir eşik ver, o seviye ve üstü gösterilir |
-| Metin arama | `--search` ile mesaj içinde regex tabanlı arama |
-| CSV / JSON dışa aktarma | `--export csv` ya da `--export json` ile sonucu dosyaya yaz |
+| Yapılandırılabilir format | Log formatı koda sabitlenmemiştir; `--parser-pattern` (CLI) ile herhangi bir formata uyarlanabilir |
+| Zaman aralığı filtresi | Belirli bir zaman penceresine daraltma |
+| Seviye eşiği filtresi | Bir seviye eşiği verildiğinde o seviye ve üstü gösterilir |
+| Metin arama | Mesaj içinde regex tabanlı arama |
+| Çoklu dosya seçimi (GUI) | GUI'de birden fazla log dosyası birlikte seçilip aynı filtreyle taranabilir; sonuç tablosunda her satırın hangi dosyadan geldiği "Kaynak" sütununda görünür |
+| Grafik (GUI) | Seviyeye göre dağılım bar grafiği ile gösterilir |
+| Son açılan dosyalar (GUI) | Son açılan dosyalar kalıcı olarak (`QSettings`) hatırlanır |
+| CSV / JSON dışa aktarma | Sonucu dosyaya yaz — her satırın kaynağı da (hangi dosyadan geldiği) dahil edilir |
 | Excel uyumlu CSV | Noktalı virgül ayracı + UTF-8 BOM, Türkçe karakterler Excel'de bozulmadan açılır |
-| Otomatik özet | Her çalıştırmada toplam/parse edilen/filtreyi geçen satır sayısı, seviyeye ve saate göre dağılım ekrana basılır |
+| Otomatik özet | Toplam/parse edilen/filtreyi geçen satır sayısı, seviyeye ve saate göre dağılım |
 
 ## Mimari
 
 ```
 LogAnalyzer/
 ├── CMakeLists.txt
-├── main.cpp                    composition root
+├── main.cpp                    CLI composition root
+├── main_gui.cpp                GUI composition root
 └── src/
     ├── core/                   ── mantık katmanı, hiçbir şeye bağımlı değil ──
     │   ├── LogLevel.h/.cpp      seviye enum'u + metin dönüşümü
@@ -30,19 +37,23 @@ LogAnalyzer/
     │   ├── ILogReader.h         "satır satır oku" sözleşmesi
     │   ├── FileLogReader.h/.cpp    QFile/QTextStream ile streaming okuma
     │   ├── LogFilter.h/.cpp    zaman / seviye / arama kriterleri
-    │   └── LogStats.h/.cpp     akış sırasında biriken istatistik
+    │   ├── LogStats.h/.cpp     akış sırasında biriken istatistik
+    │   └── EventCounter.h/.cpp  adlandırılmış olay kalıplarını aylık sayar (henüz hiçbir arayüze bağlanmadı)
     ├── export/                 ── dışa aktarma katmanı ──
     │   ├── IExporter.h         "sonucu dosyaya yaz" sözleşmesi
     │   ├── CsvExporter.h/.cpp
     │   └── JsonExporter.h/.cpp
-    └── cli/                    ── argüman katmanı ──
-        └── CliOptions.h/.cpp   QCommandLineParser sarmalayıcısı
+    ├── cli/                    ── argüman katmanı ──
+    │   └── CliOptions.h/.cpp   QCommandLineParser sarmalayıcısı
+    └── ui/                     ── GUI katmanı (yalnızca LogAnalyzerGui) ──
+        ├── MainWindow.h/.cpp/.ui   ana pencere
+        └── RecentFiles.h/.cpp      son açılan dosyalar listesi (QSettings ile kalıcı)
 ```
 
 ### Katmanlar ve SOLID
 
-- **`core`** hiçbir şeye bağımlı değil; `export` ve `cli` yalnızca `core`'daki veri tiplerini okur. Bağımlılık her zaman `core`'a doğru işaret eder.
-- Her önemli işlem önce bir **arayüz** (`ILogParser`, `ILogReader`, `IExporter`) olarak tanımlanır, sonra somut bir sınıf (`RegexLogParser`, `FileLogReader`, `CsvExporter`/`JsonExporter`) bu sözleşmeyi gerçekleştirir. Somut sınıflar yalnızca `main.cpp`'de (composition root) bir araya gelir — bu, **Dependency Inversion**'ın ve **Open/Closed** ilkesinin doğrudan uygulamasıdır: yeni bir format eklemek mevcut hiçbir sınıfı değiştirmeden mümkündür.
+- **`core`** hiçbir şeye bağımlı değil; `export`, `cli` ve `ui` yalnızca `core`'daki veri tiplerini okur. Bağımlılık her zaman `core`'a doğru işaret eder.
+- Her önemli işlem önce bir **arayüz** (`ILogParser`, `ILogReader`, `IExporter`) olarak tanımlanır, sonra somut bir sınıf (`RegexLogParser`, `FileLogReader`, `CsvExporter`/`JsonExporter`) bu sözleşmeyi gerçekleştirir. Somut sınıflar yalnızca composition root'larda (`main.cpp`, `main_gui.cpp`/`MainWindow`) bir araya gelir — bu, **Dependency Inversion**'ın ve **Open/Closed** ilkesinin doğrudan uygulamasıdır: yeni bir format eklemek mevcut hiçbir sınıfı değiştirmeden mümkündür.
 - Hiçbir yerde C++ exception kullanılmaz; her fallible işlem `bool` döner ve bir `QString &error` out-parametresini doldurur.
 
 ## Derleme
@@ -54,9 +65,18 @@ cmake -S . -B build -DCMAKE_PREFIX_PATH=<Qt6 kurulum yolu>
 cmake --build build
 ```
 
-Qt Creator kullanıyorsan projeyi açman ve normal şekilde derlemen (Ctrl+B) yeterli.
+Bu komut hem `LogAnalyzer` (CLI) hem `LogAnalyzerGui`'yi derler; tek birini istersen `--target LogAnalyzer` ya da `--target LogAnalyzerGui` ekle.
 
-## Kullanım
+Qt Creator kullanıyorsan projeyi açman ve normal şekilde derlemen (Ctrl+B) yeterli; hangi çalıştırılabilirin başlatılacağını sol alttaki hedef seçiciden değiştirebilirsin.
+
+## Kullanım — GUI (`LogAnalyzerGui`)
+
+1. **Dosya(lar) Seç** — Ctrl/Shift ile birden fazla log dosyası seçilebilir; ya da "Son Açılan Dosyalar" listesinden tek bir dosyaya tıklanabilir.
+2. Aranacak kelime/regex, parser pattern, zaman damgası formatı ve minimum seviye alanları CLI'deki `--search`/`--parser-pattern`/`--timestamp-format`/`--level` ile birebir aynı işi görür.
+3. **Ara** — seçilen tüm dosyalar sırayla okunur, aynı filtreden geçirilir; sonuç tablosunda her satırın hangi dosyadan geldiği "Kaynak" sütununda görünür, sağ tarafta seviyeye göre dağılım grafiği güncellenir.
+4. **Dışa Aktar** — `.csv` ya da `.json` uzantısına göre `CsvExporter`/`JsonExporter` seçilip son arama sonucu (kaynak bilgisiyle birlikte) dosyaya yazılır.
+
+## Kullanım — CLI (`LogAnalyzer`)
 
 ```
 LogAnalyzer --file <yol> [seçenekler]
@@ -103,9 +123,9 @@ LogAnalyzer --file farkli-format.log \
     --timestamp-format "yyyy-MM-dd HH:mm:ss,zzz"
 ```
 
-`--parser-pattern` esnekliği yalnızca teoride değil, gerçek verilerle doğrulandı: yukarıdaki `havayolu-sample.log` örneği (varsayılan format) ve [logpai/loghub](https://github.com/logpai/loghub)'dan alınan gerçek bir Hadoop cluster logu (1999 satır, tamamen farklı format) — kod hiç değişmeden, sadece bu iki argümanla iki farklı formatı da doğru ayrıştırdı.
+`--parser-pattern` esnekliği yalnızca teoride değil, gerçek verilerle doğrulandı: `havayolu-sample.log` örneği (varsayılan format) ve [logpai/loghub](https://github.com/logpai/loghub)'dan alınan gerçek bir Hadoop cluster logu (1999 satır, tamamen farklı format) — kod hiç değişmeden, sadece bu iki argümanla iki farklı formatı da doğru ayrıştırdı. Aynı dosyalar GUI'den de (çoklu dosya seçimiyle birlikte) açılıp test edilebilir.
 
-### Çıkış kodları
+### Çıkış kodları (CLI)
 
 | Kod | Anlamı |
 |---|---|
@@ -118,6 +138,8 @@ LogAnalyzer --file farkli-format.log \
 
 - Çok satırlı log mesajları (ör. stack trace) desteklenmez, her fiziksel satır ayrı işlenir.
 - Zaman damgaları yerel saat varsayılır, saat dilimi dönüşümü yapılmaz.
-- Test framework'ü içermez.
-- Tek dosya, tek thread — paralel okuma/işleme yoktur.
+- Unit test framework'ü içermez.
+- Tek thread — paralel okuma/işleme yoktur. CLI zaten tek dosya işler; GUI'de çoklu dosyalar da sırayla (paralel değil) okunur.
+- GUI'de çoklu dosya taramasında bir dosya açılamazsa, o ana kadar okunan diğer dosyaların sonuçları da gösterilmeden arama iptal olur.
 - gzip gibi sıkıştırılmış log dosyaları desteklenmez.
+- `EventCounter` sınıfı yazılmış ama henüz CLI'ye de GUI'ye de bağlanmadı.
