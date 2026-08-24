@@ -30,12 +30,16 @@ public:
     QString exportFormat() const { return m_exportFormat; }
     QString outputPath() const { return m_outputPath; }
 
+    // --parser-pattern kullanici tarafindan gercekten verildi mi (yoksa varsayilan mi kullanildi)
+    bool parserPatternExplicitlySet() const { return m_parserPatternExplicitlySet; }
+
 private:
     QString m_filePath;
     QDateTime m_from;
     QDateTime m_to;
     LogLevel m_minLevel = LogLevel::Unknown;
     QRegularExpression m_parserPattern;
+    bool m_parserPatternExplicitlySet = false;
     QString m_timestampFormat;
     QRegularExpression m_searchPattern;
     QString m_exportFormat;

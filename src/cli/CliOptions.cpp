@@ -86,7 +86,8 @@ bool CliOptions::parse(const QCoreApplication &app, QString &error)
         }
     }
 
-    m_parserPattern = parser.isSet(parserPatternOption)
+    m_parserPatternExplicitlySet = parser.isSet(parserPatternOption);
+    m_parserPattern = m_parserPatternExplicitlySet
                           ? QRegularExpression(parser.value(parserPatternOption))
                           : RegexLogParser::defaultPattern();
     if (!m_parserPattern.isValid()) {

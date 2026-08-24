@@ -17,6 +17,8 @@ set(CORE_SOURCES
     src/core/ILogParser.h
     src/core/RegexLogParser.h
     src/core/RegexLogParser.cpp
+    src/core/GenericHeuristicParser.h
+    src/core/GenericHeuristicParser.cpp
     src/core/ILogReader.h
     src/core/FileLogReader.h
     src/core/FileLogReader.cpp

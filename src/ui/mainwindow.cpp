@@ -7,6 +7,8 @@
 #include <QBarSet>
 #include <QChart>
 #include <QChartView>
+#include <QCheckBox>
+#include <QDateTimeEdit>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHeaderView>
@@ -20,6 +22,8 @@
 #include <utility>
 
 #include "../core/FileLogReader.h"
+#include "../core/GenericHeuristicParser.h"
+#include "../core/ILogParser.h"
 #include "../core/LogEntry.h"
 #include "../core/LogFilter.h"
 #include "../core/LogLevel.h"
@@ -58,6 +62,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     auto *chartLayout = new QVBoxLayout(ui->chartContainer);
     chartLayout->addWidget(m_chartView);
+
+    ui->fromDateTimeEdit->setDateTime(QDateTime(QDate(2000, 1, 1), QTime(0, 0, 0)));
+    ui->toDateTimeEdit->setDateTime(QDateTime::currentDateTime());
+
+    connect(ui->dateRangeCheckBox, &QCheckBox::toggled, ui->fromDateTimeEdit, &QWidget::setEnabled);
+    connect(ui->dateRangeCheckBox, &QCheckBox::toggled, ui->toDateTimeEdit, &QWidget::setEnabled);
 
     applyStyle();
 }
@@ -172,21 +182,23 @@ void MainWindow::onSearchClicked()
         }
     }
 
-    // --- Parser kur: kutular boşsa varsayılanı kullan ---
-    const QRegularExpression pattern = ui->patternLineEdit->text().isEmpty()
-                                           ? RegexLogParser::defaultPattern()
-                                           : QRegularExpression(ui->patternLineEdit->text());
-
-    const QString timestampFormat = ui->timestampFormatLineEdit->text().isEmpty()
-                                        ? RegexLogParser::defaultTimestampFormat()
-                                        : ui->timestampFormatLineEdit->text();
-
-    QString parserError;
-    std::unique_ptr<RegexLogParser> parser =
-        RegexLogParser::create(pattern, timestampFormat, parserError);
-    if (!parser) {
-        QMessageBox::critical(this, QStringLiteral("Pattern hatasi"), parserError);
-        return;
+    // --- Parser: kutu doluysa RegexLogParser (ozel format), bosaysa GenericHeuristicParser ---
+    std::unique_ptr<ILogParser> parser;
+    if (!ui->patternLineEdit->text().isEmpty()) {
+        const QRegularExpression pattern(ui->patternLineEdit->text());
+        const QString timestampFormat = ui->timestampFormatLineEdit->text().isEmpty()
+                                            ? RegexLogParser::defaultTimestampFormat()
+                                            : ui->timestampFormatLineEdit->text();
+        QString parserError;
+        std::unique_ptr<RegexLogParser> regexParser =
+            RegexLogParser::create(pattern, timestampFormat, parserError);
+        if (!regexParser) {
+            QMessageBox::critical(this, QStringLiteral("Pattern hatasi"), parserError);
+            return;
+        }
+        parser = std::move(regexParser);
+    } else {
+        parser = std::make_unique<GenericHeuristicParser>();
     }
 
     // --- Filtreyi kur (tum dosyalar icin ortak) ---
@@ -197,6 +209,15 @@ void MainWindow::onSearchClicked()
     const QString levelText = ui->levelComboBox->currentText();
     if (levelText != QStringLiteral("Tümü"))
         filter.setMinLevel(logLevelFromString(levelText));
+
+    if (ui->dateRangeCheckBox->isChecked()) {
+        if (ui->fromDateTimeEdit->dateTime() > ui->toDateTimeEdit->dateTime()) {
+            QMessageBox::warning(this, QStringLiteral("Gecersiz tarih araligi"),
+                                 QStringLiteral("Baslangic tarihi bitis tarihinden sonra olamaz."));
+            return;
+        }
+        filter.setTimeRange(ui->fromDateTimeEdit->dateTime(), ui->toDateTimeEdit->dateTime());
+    }
 
     // --- Her dosyayi sirayla ac, oku, filtrele, say ---
     // LogStats zaten "akis boyunca biriktiren" bir sinif oldugu icin, birden fazla

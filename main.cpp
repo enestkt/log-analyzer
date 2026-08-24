@@ -10,6 +10,8 @@
 #include "core/LogFilter.h"
 #include "core/LogLevel.h"
 #include "core/LogStats.h"
+#include "core/GenericHeuristicParser.h"
+#include "core/ILogParser.h"
 #include "core/RegexLogParser.h"
 #include "export/CsvExporter.h"
 #include "export/IExporter.h"
@@ -54,12 +56,18 @@ int main(int argc, char *argv[])
     }
 
     // --- Composition root: soyutlamalarin arkasina somut siniflari koy ---
-    QString parserError;
-    std::unique_ptr<RegexLogParser> parser =
-        RegexLogParser::create(options.parserPattern(), options.timestampFormat(), parserError);
-    if (!parser) {
-        cerr << parserError << '\n';
-        return 1;
+    std::unique_ptr<ILogParser> parser;
+    if (options.parserPatternExplicitlySet()) {
+        QString parserError;
+        std::unique_ptr<RegexLogParser> regexParser =
+            RegexLogParser::create(options.parserPattern(), options.timestampFormat(), parserError);
+        if (!regexParser) {
+            cerr << parserError << '\n';
+            return 1;
+        }
+        parser = std::move(regexParser);
+    } else {
+        parser = std::make_unique<GenericHeuristicParser>();
     }
 
     FileLogReader reader;

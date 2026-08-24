@@ -27,4 +27,10 @@ private:
     QDateTime m_to;
     LogLevel m_minLevel = LogLevel::Unknown;
     QRegularExpression m_searchPattern;
+
+    //QDateTime,RegularExpression kendi kendini güvenli başlatan tipler
+    //LogLevel ise bir enum class, arka planda düz bir sayı(int) gibi
+    //unknown ile başlatmasak hiçbir şeyle başlamazdı, bellekteki çöp değeri taşırdı
+    //yani m_minLevel trace mi critical mi ne olacağı belirsiz olurdu, öngörülmez bir değer taşırdı
+
 };
