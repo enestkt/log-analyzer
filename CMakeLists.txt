@@ -19,6 +19,10 @@ set(CORE_SOURCES
     src/core/RegexLogParser.cpp
     src/core/GenericHeuristicParser.h
     src/core/GenericHeuristicParser.cpp
+    src/core/SyslogParser.h
+    src/core/SyslogParser.cpp
+    src/core/ParserLibrary.h
+    src/core/ParserLibrary.cpp
     src/core/ILogReader.h
     src/core/FileLogReader.h
     src/core/FileLogReader.cpp

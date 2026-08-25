@@ -10,8 +10,8 @@
 #include "core/LogFilter.h"
 #include "core/LogLevel.h"
 #include "core/LogStats.h"
-#include "core/GenericHeuristicParser.h"
 #include "core/ILogParser.h"
+#include "core/ParserLibrary.h"
 #include "core/RegexLogParser.h"
 #include "export/CsvExporter.h"
 #include "export/IExporter.h"
@@ -67,7 +67,17 @@ int main(int argc, char *argv[])
         }
         parser = std::move(regexParser);
     } else {
-        parser = std::make_unique<GenericHeuristicParser>();
+        QStringList sampleLines;
+        FileLogReader sampleReader;
+        QString sampleError;
+        if (sampleReader.open(options.filePath(), sampleError)) {
+            while (!sampleReader.atEnd() && sampleLines.size() < 20)
+                sampleLines.append(sampleReader.readLine());
+            sampleReader.close();
+        }
+        QString detectedFormatName;
+        parser = ParserLibrary::detect(sampleLines, detectedFormatName);
+        cout << "Algilanan log formati: " << detectedFormatName << "\n";
     }
 
     FileLogReader reader;

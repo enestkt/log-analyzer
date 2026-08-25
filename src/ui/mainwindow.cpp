@@ -22,12 +22,12 @@
 #include <utility>
 
 #include "../core/FileLogReader.h"
-#include "../core/GenericHeuristicParser.h"
 #include "../core/ILogParser.h"
 #include "../core/LogEntry.h"
 #include "../core/LogFilter.h"
 #include "../core/LogLevel.h"
 #include "../core/LogStats.h"
+#include "../core/ParserLibrary.h"
 #include "../core/RegexLogParser.h"
 #include "../export/CsvExporter.h"
 #include "../export/IExporter.h"
@@ -182,23 +182,16 @@ void MainWindow::onSearchClicked()
         }
     }
 
-    // --- Parser: kutu doluysa RegexLogParser (ozel format), bosaysa GenericHeuristicParser ---
-    std::unique_ptr<ILogParser> parser;
-    if (!ui->patternLineEdit->text().isEmpty()) {
-        const QRegularExpression pattern(ui->patternLineEdit->text());
-        const QString timestampFormat = ui->timestampFormatLineEdit->text().isEmpty()
-                                            ? RegexLogParser::defaultTimestampFormat()
-                                            : ui->timestampFormatLineEdit->text();
-        QString parserError;
-        std::unique_ptr<RegexLogParser> regexParser =
-            RegexLogParser::create(pattern, timestampFormat, parserError);
-        if (!regexParser) {
-            QMessageBox::critical(this, QStringLiteral("Pattern hatasi"), parserError);
-            return;
-        }
-        parser = std::move(regexParser);
-    } else {
-        parser = std::make_unique<GenericHeuristicParser>();
+    // --- Parser: kutu doluysa RegexLogParser (ozel format) her dosyada aynen kullanilir;
+    //     bosaysa HER DOSYA icin hazir format kutuphanesinden (ParserLibrary) otomatik secilir ---
+    const bool useCustomPattern = !ui->patternLineEdit->text().isEmpty();
+    QRegularExpression customPattern;
+    QString customTimestampFormat;
+    if (useCustomPattern) {
+        customPattern = QRegularExpression(ui->patternLineEdit->text());
+        customTimestampFormat = ui->timestampFormatLineEdit->text().isEmpty()
+                                    ? RegexLogParser::defaultTimestampFormat()
+                                    : ui->timestampFormatLineEdit->text();
     }
 
     // --- Filtreyi kur (tum dosyalar icin ortak) ---
@@ -228,6 +221,29 @@ void MainWindow::onSearchClicked()
     QStringList sources;   // filteredEntries ile ayni sirada, hangi dosyadan geldigi
 
     for (const QString &filePath : std::as_const(m_filePaths)) {
+        std::unique_ptr<ILogParser> parser;
+        if (useCustomPattern) {
+            QString parserError;
+            std::unique_ptr<RegexLogParser> regexParser =
+                RegexLogParser::create(customPattern, customTimestampFormat, parserError);
+            if (!regexParser) {
+                QMessageBox::critical(this, QStringLiteral("Pattern hatasi"), parserError);
+                return;
+            }
+            parser = std::move(regexParser);
+        } else {
+            QStringList sampleLines;
+            FileLogReader sampleReader;
+            QString sampleError;
+            if (sampleReader.open(filePath, sampleError)) {
+                while (!sampleReader.atEnd() && sampleLines.size() < 20)
+                    sampleLines.append(sampleReader.readLine());
+                sampleReader.close();
+            }
+            QString detectedFormatName;
+            parser = ParserLibrary::detect(sampleLines, detectedFormatName);
+        }
+
         FileLogReader reader;
         QString readerError;
         if (!reader.open(filePath, readerError)) {

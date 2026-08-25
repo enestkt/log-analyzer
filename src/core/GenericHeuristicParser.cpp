@@ -72,12 +72,20 @@ bool GenericHeuristicParser::parseLine(const QString &line, LogEntry &out) const
         messageSearchStart = timestampEnd + levelMatch.capturedEnd(0);
     }
 
-    // 3) Mesaj: seviyeden sonraki kisimda ilk ':' karakterinden sonrasi --
-    //    thread adi/logger sinifi gibi ara alanlar (Hadoop tarzi) boylece atlanir.
-    //    ':' yoksa kalan kismin tamami mesaj sayilir.
+    // 3) Mesaj: metadata (thread adi, sinif adi, IP vb.) genelde bir kose parantez
+    //    icinde olur -- gercek mesaj her zaman en SONUNCU ']' isaretinden SONRA baslar.
+    //    Bu, Zookeeper gibi ic ice ':' iceren (IPv6 benzeri) adreslerin mesaji
+    //    yanlislikla kesmesini onler (orn. [.../0:0:0:0:0:0:0:0:2181:...]).
     QString remainder = line.mid(messageSearchStart);
-    const int firstColon = remainder.indexOf(QLatin1Char(':'));
-    QString message = (firstColon >= 0) ? remainder.mid(firstColon + 1) : remainder;
+    const int lastBracketClose = remainder.lastIndexOf(QLatin1Char(']'));
+    const QString afterBrackets = (lastBracketClose >= 0) ? remainder.mid(lastBracketClose + 1) : remainder;
+
+    // Mesajdan hemen once gelen ayirici ya ':' ya da ' - ' olabilir -- hangisi ONCE
+    // geliyorsa o kullanilir (orn. Hadoop ':' ile ayirir, Zookeeper ' - ' ile).
+    static const QRegularExpression separatorPattern(QStringLiteral(R"(\s-\s|:)"));
+    const QRegularExpressionMatch sepMatch = separatorPattern.match(afterBrackets);
+
+    QString message = sepMatch.hasMatch() ? afterBrackets.mid(sepMatch.capturedEnd(0)) : afterBrackets;
     message = message.trimmed();
     while (!message.isEmpty() && (message.at(0) == QLatin1Char(']') || message.at(0) == QLatin1Char('-')))
         message = message.mid(1).trimmed();
