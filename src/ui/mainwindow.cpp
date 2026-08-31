@@ -124,7 +124,7 @@ void MainWindow::applyStyle()
     setStyleSheet(QStringLiteral(R"(
         /* ---- pencere zemini ---- */
         QMainWindow, QWidget#centralwidget {
-            background-color: #1a1e24;
+            background-color: #101816;
         }
 
         /* ---- sol panel kaydirma alani -- kendi arka plani olmasin, altindaki
@@ -136,13 +136,13 @@ void MainWindow::applyStyle()
 
         /* ---- kart gruplari (Dosyalar / Filtreler / Sonuclar) ---- */
         QGroupBox {
-            background-color: #20252c;
-            border: 1px solid #2f363f;
+            background-color: #172422;
+            border: 1px solid #263a35;
             border-radius: 8px;
             margin-top: 14px;
             padding: 14px 12px 12px 12px;
             font-weight: 600;
-            color: #e8eaed;
+            color: #e6eae8;
         }
         QGroupBox::title {
             subcontrol-origin: margin;
@@ -164,8 +164,8 @@ void MainWindow::applyStyle()
 
         /* ---- grafik karti ---- */
         QWidget#chartContainer {
-            background-color: #20252c;
-            border: 1px solid #2f363f;
+            background-color: #172422;
+            border: 1px solid #263a35;
             border-radius: 8px;
         }
 
@@ -180,7 +180,7 @@ void MainWindow::applyStyle()
         }
         QPushButton:hover { background-color: #2dd4bf; }
         QPushButton:pressed { background-color: #0d9488; }
-        QPushButton:disabled { background-color: #384049; color: #6b7480; }
+        QPushButton:disabled { background-color: #2c3d38; color: #6d8078; }
 
         /* ---- ikincil buton (Disa Aktar) -- dinamik "secondary" property ile ---- */
         QPushButton[secondary="true"] {
@@ -198,35 +198,35 @@ void MainWindow::applyStyle()
 
         /* ---- metin/tarih giris kutulari ---- */
         QLineEdit, QComboBox, QDateTimeEdit {
-            background-color: #262b32;
-            border: 1px solid #3a4048;
+            background-color: #1e2b28;
+            border: 1px solid #2f423e;
             border-radius: 5px;
             padding: 6px 8px;
-            color: #e8eaed;
+            color: #e6eae8;
             selection-background-color: #14b8a6;
         }
         QLineEdit:focus, QComboBox:focus, QDateTimeEdit:focus {
             border: 1px solid #14b8a6;
         }
         QLineEdit:disabled, QDateTimeEdit:disabled {
-            color: #5c6672;
-            background-color: #21252b;
+            color: #5e756e;
+            background-color: #182422;
         }
         QComboBox::drop-down { border: none; width: 22px; }
         QComboBox QAbstractItemView {
-            background-color: #262b32;
-            color: #e8eaed;
-            border: 1px solid #3a4048;
+            background-color: #1e2b28;
+            color: #e6eae8;
+            border: 1px solid #2f423e;
             selection-background-color: #14b8a6;
             outline: none;
         }
 
-        QCheckBox { color: #c7cdd6; spacing: 8px; }
+        QCheckBox { color: #c4d1cd; spacing: 8px; }
         QCheckBox::indicator {
             width: 16px; height: 16px;
-            border: 1px solid #4a525c;
+            border: 1px solid #43605a;
             border-radius: 3px;
-            background-color: #262b32;
+            background-color: #1e2b28;
         }
         QCheckBox::indicator:checked {
             background-color: #14b8a6;
@@ -235,29 +235,29 @@ void MainWindow::applyStyle()
 
         /* ---- son acilan dosyalar listesi ---- */
         QListWidget {
-            background-color: #191d23;
-            border: 1px solid #2f363f;
+            background-color: #0f1614;
+            border: 1px solid #263a35;
             border-radius: 5px;
-            color: #c7cdd6;
+            color: #c4d1cd;
         }
         QListWidget::item { padding: 3px 4px; }
         QListWidget::item:selected { background-color: #14b8a6; color: #ffffff; }
 
         /* ---- sonuc tablosu ---- */
         QTableWidget {
-            background-color: #191d23;
-            alternate-background-color: #1e232a;
-            gridline-color: #2f363f;
-            color: #d7dce2;
-            border: 1px solid #2f363f;
+            background-color: #0f1614;
+            alternate-background-color: #14201d;
+            gridline-color: #263a35;
+            color: #d4e0db;
+            border: 1px solid #263a35;
             border-radius: 5px;
         }
         QHeaderView::section {
-            background-color: #262b32;
-            color: #98a2ad;
+            background-color: #1e2b28;
+            color: #93aaa4;
             padding: 6px;
             border: none;
-            border-bottom: 1px solid #2f363f;
+            border-bottom: 1px solid #263a35;
             font-weight: 600;
             font-size: 11px;
         }
@@ -268,15 +268,15 @@ void MainWindow::applyStyle()
             background: transparent; width: 10px; margin: 0;
         }
         QScrollBar::handle:vertical {
-            background: #3a4048; border-radius: 5px; min-height: 24px;
+            background: #2f423e; border-radius: 5px; min-height: 24px;
         }
-        QScrollBar::handle:vertical:hover { background: #4a525c; }
+        QScrollBar::handle:vertical:hover { background: #43605a; }
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
 
         /* ---- genel etiketler ---- */
-        QLabel { color: #c7cdd6; }
-        QLabel#filePathLabel { color: #98a2ad; font-style: italic; }
-        QLabel#resultCountLabel { color: #e8eaed; font-weight: 600; }
+        QLabel { color: #c4d1cd; }
+        QLabel#filePathLabel { color: #93aaa4; font-style: italic; }
+        QLabel#resultCountLabel { color: #e6eae8; font-weight: 600; }
     )"));
 }
 
