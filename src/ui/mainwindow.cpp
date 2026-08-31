@@ -6,11 +6,16 @@
 #include <QBarSeries>
 #include <QBarSet>
 #include <QChart>
+#include <QBrush>
 #include <QChartView>
 #include <QCheckBox>
+#include <QColor>
+#include <QGuiApplication>
+#include <QScreen>
 #include <QDateTimeEdit>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFont>
 #include <QHeaderView>
 #include <QListWidgetItem>
 #include <QMessageBox>
@@ -34,11 +39,36 @@
 #include "../export/JsonExporter.h"
 #include "RecentFiles.h"
 
+namespace {
+
+// Sonuc tablosunda "Seviye" sutununu, onemine gore renklendirmek icin.
+// INFO/DEBUG/TRACE normal metin rengiyle kaliyor -- sadece dikkat cekmesi
+// gereken seviyeler (WARNING/ERROR/CRITICAL) renkli ve kalin gosteriliyor.
+QColor levelColor(LogLevel level)
+{
+    switch (level) {
+    case LogLevel::Warning:  return QColor(0xe0, 0xa5, 0x48);
+    case LogLevel::Error:    return QColor(0xe0, 0x68, 0x5a);
+    case LogLevel::Critical: return QColor(0xff, 0x5c, 0x5c);
+    default:                 return QColor(0xd7, 0xdc, 0xe2);
+    }
+}
+
+bool isAttentionLevel(LogLevel level)
+{
+    return level == LogLevel::Warning || level == LogLevel::Error || level == LogLevel::Critical;
+}
+
+} // namespace
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    setFont(QFont(QStringLiteral("Segoe UI"), 10));
+    ui->exportButton->setProperty("secondary", true);
 
     ui->resultTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->resultTableWidget->horizontalHeader()->setStretchLastSection(true);
@@ -55,7 +85,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_chart = new QChart();
     m_chart->legend()->setVisible(false);
-    m_chart->setTitle(QStringLiteral("Seviyeye gore dagilim"));
+    m_chart->setBackgroundVisible(false);
+    m_chart->setMargins(QMargins(4, 4, 4, 4));
 
     m_chartView = new QChartView(m_chart, this);
     m_chartView->setRenderHint(QPainter::Antialiasing);
@@ -69,6 +100,17 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->dateRangeCheckBox, &QCheckBox::toggled, ui->fromDateTimeEdit, &QWidget::setEnabled);
     connect(ui->dateRangeCheckBox, &QCheckBox::toggled, ui->toDateTimeEdit, &QWidget::setEnabled);
 
+    // Pencere .ui'deki sabit boyutta acilirsa kucuk ekranlarda alt kismi gorev
+    // cubugunun altinda kalabilir -- acilista, ekranin gercekten gosterebildigi
+    // alana gore boyutu otomatik kucultup ortalıyoruz.
+    if (QScreen *screen = QGuiApplication::primaryScreen()) {
+        const QRect avail = screen->availableGeometry();
+        const int targetWidth = qMin(width(), avail.width() - 60);
+        const int targetHeight = qMin(height(), avail.height() - 60);
+        resize(targetWidth, targetHeight);
+        move(avail.center().x() - targetWidth / 2, avail.center().y() - targetHeight / 2);
+    }
+
     applyStyle();
 }
 
@@ -80,51 +122,161 @@ MainWindow::~MainWindow()
 void MainWindow::applyStyle()
 {
     setStyleSheet(QStringLiteral(R"(
+        /* ---- pencere zemini ---- */
+        QMainWindow, QWidget#centralwidget {
+            background-color: #1a1e24;
+        }
+
+        /* ---- sol panel kaydirma alani -- kendi arka plani olmasin, altindaki
+               pencere zeminiyle ayni gorunsun ---- */
+        QScrollArea, QScrollArea > QWidget, QWidget#leftPanelWidget {
+            background: transparent;
+            border: none;
+        }
+
+        /* ---- kart gruplari (Dosyalar / Filtreler / Sonuclar) ---- */
+        QGroupBox {
+            background-color: #20252c;
+            border: 1px solid #2f363f;
+            border-radius: 8px;
+            margin-top: 14px;
+            padding: 14px 12px 12px 12px;
+            font-weight: 600;
+            color: #e8eaed;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            subcontrol-position: top left;
+            left: 12px;
+            top: -2px;
+            padding: 0 6px;
+            color: #8ec1ee;
+            letter-spacing: 0.3px;
+        }
+
+        /* ---- grafik basligi (chartTitleLabel) ---- */
+        QLabel#chartTitleLabel {
+            font-weight: 600;
+            font-size: 13px;
+            color: #8ec1ee;
+            padding-left: 2px;
+        }
+
+        /* ---- grafik karti ---- */
+        QWidget#chartContainer {
+            background-color: #20252c;
+            border: 1px solid #2f363f;
+            border-radius: 8px;
+        }
+
+        /* ---- butonlar: birincil (Ara) ---- */
         QPushButton {
             background-color: #2f7dd1;
             color: #ffffff;
             border: none;
-            border-radius: 5px;
-            padding: 8px 14px;
+            border-radius: 6px;
+            padding: 8px 16px;
             font-weight: 600;
         }
         QPushButton:hover { background-color: #3f8bdc; }
         QPushButton:pressed { background-color: #235c9c; }
+        QPushButton:disabled { background-color: #384049; color: #6b7480; }
 
-        QLineEdit, QComboBox {
-            background-color: #2b2f36;
-            border: 1px solid #444b54;
-            border-radius: 4px;
+        /* ---- ikincil buton (Disa Aktar) -- dinamik "secondary" property ile ---- */
+        QPushButton[secondary="true"] {
+            background-color: transparent;
+            color: #8ec1ee;
+            border: 1px solid #3a6ea5;
+        }
+        QPushButton[secondary="true"]:hover {
+            background-color: rgba(47, 125, 209, 0.15);
+            border-color: #2f7dd1;
+        }
+        QPushButton[secondary="true"]:pressed {
+            background-color: rgba(47, 125, 209, 0.28);
+        }
+
+        /* ---- metin/tarih giris kutulari ---- */
+        QLineEdit, QComboBox, QDateTimeEdit {
+            background-color: #262b32;
+            border: 1px solid #3a4048;
+            border-radius: 5px;
             padding: 6px 8px;
-            color: #e6e6e6;
+            color: #e8eaed;
+            selection-background-color: #2f7dd1;
         }
-        QLineEdit:focus, QComboBox:focus { border: 1px solid #2f7dd1; }
+        QLineEdit:focus, QComboBox:focus, QDateTimeEdit:focus {
+            border: 1px solid #2f7dd1;
+        }
+        QLineEdit:disabled, QDateTimeEdit:disabled {
+            color: #5c6672;
+            background-color: #21252b;
+        }
+        QComboBox::drop-down { border: none; width: 22px; }
+        QComboBox QAbstractItemView {
+            background-color: #262b32;
+            color: #e8eaed;
+            border: 1px solid #3a4048;
+            selection-background-color: #2f7dd1;
+            outline: none;
+        }
 
+        QCheckBox { color: #c7cdd6; spacing: 8px; }
+        QCheckBox::indicator {
+            width: 16px; height: 16px;
+            border: 1px solid #4a525c;
+            border-radius: 3px;
+            background-color: #262b32;
+        }
+        QCheckBox::indicator:checked {
+            background-color: #2f7dd1;
+            border-color: #2f7dd1;
+        }
+
+        /* ---- son acilan dosyalar listesi ---- */
         QListWidget {
-            background-color: #2b2f36;
-            border: 1px solid #444b54;
-            border-radius: 4px;
-            color: #e6e6e6;
+            background-color: #191d23;
+            border: 1px solid #2f363f;
+            border-radius: 5px;
+            color: #c7cdd6;
         }
-        QListWidget::item:selected { background-color: #2f7dd1; }
+        QListWidget::item { padding: 3px 4px; }
+        QListWidget::item:selected { background-color: #2f7dd1; color: #ffffff; }
 
+        /* ---- sonuc tablosu ---- */
         QTableWidget {
-            background-color: #2b2f36;
-            alternate-background-color: #262a30;
-            gridline-color: #3a3f46;
-            color: #e6e6e6;
-            border: 1px solid #444b54;
+            background-color: #191d23;
+            alternate-background-color: #1e232a;
+            gridline-color: #2f363f;
+            color: #d7dce2;
+            border: 1px solid #2f363f;
+            border-radius: 5px;
         }
         QHeaderView::section {
-            background-color: #343a42;
-            color: #e6e6e6;
+            background-color: #262b32;
+            color: #98a2ad;
             padding: 6px;
             border: none;
+            border-bottom: 1px solid #2f363f;
             font-weight: 600;
+            font-size: 11px;
         }
+        QTableWidget::item:selected { background-color: rgba(47, 125, 209, 0.35); }
 
-        QLabel { color: #dcdcdc; }
-        QLabel#recentFilesTitleLabel { font-weight: 600; color: #e6e6e6; }
+        /* ---- kaydirma cubuklari ---- */
+        QScrollBar:vertical {
+            background: transparent; width: 10px; margin: 0;
+        }
+        QScrollBar::handle:vertical {
+            background: #3a4048; border-radius: 5px; min-height: 24px;
+        }
+        QScrollBar::handle:vertical:hover { background: #4a525c; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+
+        /* ---- genel etiketler ---- */
+        QLabel { color: #c7cdd6; }
+        QLabel#filePathLabel { color: #98a2ad; font-style: italic; }
+        QLabel#resultCountLabel { color: #e8eaed; font-weight: 600; }
     )"));
 }
 
@@ -291,7 +443,16 @@ void MainWindow::onSearchClicked()
     for (int row = 0; row < filteredEntries.size(); ++row) {
         const LogEntry &entry = filteredEntries.at(row);
         ui->resultTableWidget->setItem(row, 0, new QTableWidgetItem(entry.timestamp.toString(Qt::ISODate)));
-        ui->resultTableWidget->setItem(row, 1, new QTableWidgetItem(logLevelToString(entry.level)));
+
+        auto *levelItem = new QTableWidgetItem(logLevelToString(entry.level));
+        levelItem->setForeground(QBrush(levelColor(entry.level)));
+        if (isAttentionLevel(entry.level)) {
+            QFont boldFont = levelItem->font();
+            boldFont.setBold(true);
+            levelItem->setFont(boldFont);
+        }
+        ui->resultTableWidget->setItem(row, 1, levelItem);
+
         ui->resultTableWidget->setItem(row, 2, new QTableWidgetItem(entry.message));
         ui->resultTableWidget->setItem(row, 3, new QTableWidgetItem(m_lastSources.at(row)));
     }
