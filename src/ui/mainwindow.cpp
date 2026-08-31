@@ -150,7 +150,7 @@ void MainWindow::applyStyle()
             left: 12px;
             top: -2px;
             padding: 0 6px;
-            color: #8ec1ee;
+            color: #5eead4;
             letter-spacing: 0.3px;
         }
 
@@ -158,7 +158,7 @@ void MainWindow::applyStyle()
         QLabel#chartTitleLabel {
             font-weight: 600;
             font-size: 13px;
-            color: #8ec1ee;
+            color: #5eead4;
             padding-left: 2px;
         }
 
@@ -171,29 +171,29 @@ void MainWindow::applyStyle()
 
         /* ---- butonlar: birincil (Ara) ---- */
         QPushButton {
-            background-color: #2f7dd1;
+            background-color: #14b8a6;
             color: #ffffff;
             border: none;
             border-radius: 6px;
             padding: 8px 16px;
             font-weight: 600;
         }
-        QPushButton:hover { background-color: #3f8bdc; }
-        QPushButton:pressed { background-color: #235c9c; }
+        QPushButton:hover { background-color: #2dd4bf; }
+        QPushButton:pressed { background-color: #0d9488; }
         QPushButton:disabled { background-color: #384049; color: #6b7480; }
 
         /* ---- ikincil buton (Disa Aktar) -- dinamik "secondary" property ile ---- */
         QPushButton[secondary="true"] {
             background-color: transparent;
-            color: #8ec1ee;
-            border: 1px solid #3a6ea5;
+            color: #5eead4;
+            border: 1px solid #0f766e;
         }
         QPushButton[secondary="true"]:hover {
-            background-color: rgba(47, 125, 209, 0.15);
-            border-color: #2f7dd1;
+            background-color: rgba(20, 184, 166, 0.15);
+            border-color: #14b8a6;
         }
         QPushButton[secondary="true"]:pressed {
-            background-color: rgba(47, 125, 209, 0.28);
+            background-color: rgba(20, 184, 166, 0.28);
         }
 
         /* ---- metin/tarih giris kutulari ---- */
@@ -203,10 +203,10 @@ void MainWindow::applyStyle()
             border-radius: 5px;
             padding: 6px 8px;
             color: #e8eaed;
-            selection-background-color: #2f7dd1;
+            selection-background-color: #14b8a6;
         }
         QLineEdit:focus, QComboBox:focus, QDateTimeEdit:focus {
-            border: 1px solid #2f7dd1;
+            border: 1px solid #14b8a6;
         }
         QLineEdit:disabled, QDateTimeEdit:disabled {
             color: #5c6672;
@@ -217,7 +217,7 @@ void MainWindow::applyStyle()
             background-color: #262b32;
             color: #e8eaed;
             border: 1px solid #3a4048;
-            selection-background-color: #2f7dd1;
+            selection-background-color: #14b8a6;
             outline: none;
         }
 
@@ -229,8 +229,8 @@ void MainWindow::applyStyle()
             background-color: #262b32;
         }
         QCheckBox::indicator:checked {
-            background-color: #2f7dd1;
-            border-color: #2f7dd1;
+            background-color: #14b8a6;
+            border-color: #14b8a6;
         }
 
         /* ---- son acilan dosyalar listesi ---- */
@@ -241,7 +241,7 @@ void MainWindow::applyStyle()
             color: #c7cdd6;
         }
         QListWidget::item { padding: 3px 4px; }
-        QListWidget::item:selected { background-color: #2f7dd1; color: #ffffff; }
+        QListWidget::item:selected { background-color: #14b8a6; color: #ffffff; }
 
         /* ---- sonuc tablosu ---- */
         QTableWidget {
@@ -261,7 +261,7 @@ void MainWindow::applyStyle()
             font-weight: 600;
             font-size: 11px;
         }
-        QTableWidget::item:selected { background-color: rgba(47, 125, 209, 0.35); }
+        QTableWidget::item:selected { background-color: rgba(20, 184, 166, 0.35); }
 
         /* ---- kaydirma cubuklari ---- */
         QScrollBar:vertical {
@@ -466,6 +466,7 @@ void MainWindow::onSearchClicked()
     }
 
     auto *barSet = new QBarSet(QStringLiteral("Sayi"));
+    barSet->setColor(QColor(0x14, 0xb8, 0xa6));
     QStringList categories;
     for (auto it = m_lastStats.countsByLevel.constBegin(); it != m_lastStats.countsByLevel.constEnd(); ++it) {
         *barSet << it.value();
