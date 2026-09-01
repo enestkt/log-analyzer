@@ -3,8 +3,8 @@
 
 #include <QAbstractItemView>
 #include <QBarCategoryAxis>
-#include <QBarSeries>
 #include <QBarSet>
+#include <QStackedBarSeries>
 #include <QChart>
 #include <QBrush>
 #include <QChartView>
@@ -57,6 +57,22 @@ QColor levelColor(LogLevel level)
 bool isAttentionLevel(LogLevel level)
 {
     return level == LogLevel::Warning || level == LogLevel::Error || level == LogLevel::Critical;
+}
+
+// Grafikte her seviye kendi rengiyle ayirt edilsin diye -- tablodaki gibi
+// sadece onemli seviyeleri degil, hepsini (soguktan sicaga dogru artan bir
+// "ciddiyet" hissi versin diye) farkli renklendiriyoruz.
+QColor chartLevelColor(LogLevel level)
+{
+    switch (level) {
+    case LogLevel::Trace:    return QColor(0x3f, 0x56, 0x50);
+    case LogLevel::Debug:    return QColor(0x5e, 0x75, 0x6e);
+    case LogLevel::Info:     return QColor(0x14, 0xb8, 0xa6);
+    case LogLevel::Warning:  return QColor(0xe0, 0xa5, 0x48);
+    case LogLevel::Error:    return QColor(0xe0, 0x68, 0x5a);
+    case LogLevel::Critical: return QColor(0xff, 0x5c, 0x5c);
+    default:                 return QColor(0x93, 0xaa, 0xa4);
+    }
 }
 
 } // namespace
@@ -465,16 +481,22 @@ void MainWindow::onSearchClicked()
         axis->deleteLater();
     }
 
-    auto *barSet = new QBarSet(QStringLiteral("Sayi"));
-    barSet->setColor(QColor(0x14, 0xb8, 0xa6));
+    // Her seviye kendi renginde, ayri bir QBarSet -- QStackedBarSeries'te ustuste
+    // "istifleniyor" ama her kategoride sadece bir set sifirdan farkli oldugu icin
+    // gorsel olarak her seviye, kendi renginde, tam genislikte tek bir bar oluyor.
     QStringList categories;
-    for (auto it = m_lastStats.countsByLevel.constBegin(); it != m_lastStats.countsByLevel.constEnd(); ++it) {
-        *barSet << it.value();
+    for (auto it = m_lastStats.countsByLevel.constBegin(); it != m_lastStats.countsByLevel.constEnd(); ++it)
         categories << logLevelToString(it.key());
-    }
 
-    auto *series = new QBarSeries();
-    series->append(barSet);
+    auto *series = new QStackedBarSeries();
+    int levelIndex = 0;
+    for (auto it = m_lastStats.countsByLevel.constBegin(); it != m_lastStats.countsByLevel.constEnd(); ++it, ++levelIndex) {
+        auto *barSet = new QBarSet(logLevelToString(it.key()));
+        for (int i = 0; i < categories.size(); ++i)
+            *barSet << (i == levelIndex ? it.value() : 0);
+        barSet->setColor(chartLevelColor(it.key()));
+        series->append(barSet);
+    }
     m_chart->addSeries(series);
 
     auto *axisX = new QBarCategoryAxis();
