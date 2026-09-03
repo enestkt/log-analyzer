@@ -157,8 +157,9 @@ Dördünde de kod hiç değişmedi, hatta çoğunda elle pattern bile verilmedi 
 
 - Çok satırlı log mesajları (ör. stack trace) desteklenmez, her fiziksel satır ayrı işlenir.
 - Zaman damgaları yerel saat varsayılır, saat dilimi dönüşümü yapılmaz.
-- Syslog formatında yıl bilgisi hiç yazılmadığı için içinde bulunulan yıl varsayılır (`SyslogParser`) — eski/arşivlenmiş loglarda bu yanlış olabilir.
-- Otomatik format kütüphanesi şu an iki stratejiden oluşuyor (`GenericHeuristicParser`, `SyslogParser`); JSON satır satır loglar (`{"timestamp":...}` tarzı) ve tamamen sıra dışı yapılar için hâlâ elle `--parser-pattern` gerekir.
+- Syslog formatında yıl bilgisi hiç yazılmadığı için (`SyslogParser`) dosyanın son değiştirilme yılı varsayılır (yoksa içinde bulunulan yıl) — bir dosyada yıl sınırını aşan (ör. Aralık→Ocak) kayıtlar varsa hâlâ yanılabilir.
+- Otomatik format kütüphanesi şu an iki stratejiden oluşuyor (`GenericHeuristicParser`, `SyslogParser`); ikisi de tanıyamazsa sonuç ekranında "Bilinmiyor (varsayılan kullanılıyor, sonuçlar hatalı olabilir)" diye açıkça belirtilir. JSON satır satır loglar (`{"timestamp":...}` tarzı) ve tamamen sıra dışı yapılar için hâlâ elle `--parser-pattern` gerekir.
+- `GenericHeuristicParser`, zaman damgasını satırın ilk 40, metadata kapanışını (`]`) ilk 100 karakterinde arar — bu, gerçek değeri mesajın derinlerinde geçen (çok uzun) satırlarda nadiren yanlış eşleşmeyi önlemek için bilinçli bir sınır.
 - Unit test framework'ü içermez.
 - Tek thread — paralel okuma/işleme yoktur. CLI zaten tek dosya işler; GUI'de çoklu dosyalar da sırayla (paralel değil) okunur.
 - GUI'de çoklu dosya taramasında bir dosya açılamazsa, o ana kadar okunan diğer dosyaların sonuçları da gösterilmeden arama iptal olur.

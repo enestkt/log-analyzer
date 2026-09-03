@@ -10,6 +10,8 @@
 #include <QChartView>
 #include <QCheckBox>
 #include <QColor>
+#include <QDate>
+#include <QDateTime>
 #include <QGuiApplication>
 #include <QScreen>
 #include <QDateTimeEdit>
@@ -408,8 +410,10 @@ void MainWindow::onSearchClicked()
                     sampleLines.append(sampleReader.readLine());
                 sampleReader.close();
             }
+            const QDateTime modified = QFileInfo(filePath).lastModified();
+            const int referenceYear = modified.isValid() ? modified.date().year() : QDate::currentDate().year();
             QString detectedFormatName;
-            parser = ParserLibrary::detect(sampleLines, detectedFormatName);
+            parser = ParserLibrary::detect(sampleLines, referenceYear, detectedFormatName);
         }
 
         FileLogReader reader;

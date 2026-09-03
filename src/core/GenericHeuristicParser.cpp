@@ -41,11 +41,17 @@ const QRegularExpression &levelPattern()
 bool GenericHeuristicParser::parseLine(const QString &line, LogEntry &out) const
 {
     // 1) Zaman damgasini bul -- birkac yaygin kalibi sirayla dener, ilk eslesen kazanir.
+    //    Aramayi satirin ilk birkac karakteriyle sinirliyoruz (gercek zaman damgalari
+    //    hep satir basinda olur) -- boylece mesajin ICINDE gecen bir tarih benzeri
+    //    metin yanlislikla zaman damgasi sanilmaz.
+    static constexpr int kTimestampSearchWindow = 40;
+    const QString timestampSearchArea = line.left(kTimestampSearchWindow);
+
     QString timestampText;
     QString timestampFormat;
     int timestampEnd = -1;
     for (const TimestampPattern &tp : timestampPatterns()) {
-        const QRegularExpressionMatch m = tp.regex.match(line);
+        const QRegularExpressionMatch m = tp.regex.match(timestampSearchArea);
         if (m.hasMatch()) {
             timestampText = m.captured(0);
             timestampFormat = tp.qtFormat;
@@ -76,8 +82,13 @@ bool GenericHeuristicParser::parseLine(const QString &line, LogEntry &out) const
     //    icinde olur -- gercek mesaj her zaman en SONUNCU ']' isaretinden SONRA baslar.
     //    Bu, Zookeeper gibi ic ice ':' iceren (IPv6 benzeri) adreslerin mesaji
     //    yanlislikla kesmesini onler (orn. [.../0:0:0:0:0:0:0:0:2181:...]).
+    // Parantez aramasini da sinirli bir pencerede yapiyoruz -- metadata (thread/sinif
+    // adi) genelde seviyeden hemen sonra, kisa bir mesafede biter; mesajin derinlerinde
+    // gecebilecek bir ']' karakterinin yanlislikla sinir sanilmasi riskini azaltiyor.
     QString remainder = line.mid(messageSearchStart);
-    const int lastBracketClose = remainder.lastIndexOf(QLatin1Char(']'));
+    static constexpr int kBracketSearchWindow = 100;
+    const int bracketSearchLimit = qMin(remainder.size(), kBracketSearchWindow);
+    const int lastBracketClose = remainder.left(bracketSearchLimit).lastIndexOf(QLatin1Char(']'));
     const QString afterBrackets = (lastBracketClose >= 0) ? remainder.mid(lastBracketClose + 1) : remainder;
 
     // Mesajdan hemen once gelen ayirici ya ':' ya da ' - ' olabilir -- hangisi ONCE

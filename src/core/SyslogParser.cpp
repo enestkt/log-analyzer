@@ -30,6 +30,11 @@ int monthFromName(const QString &name)
 
 } // namespace
 
+SyslogParser::SyslogParser(int referenceYear)
+    : m_referenceYear(referenceYear)
+{
+}
+
 bool SyslogParser::parseLine(const QString &line, LogEntry &out) const
 {
     const QRegularExpressionMatch match = syslogPattern().match(line);
@@ -44,10 +49,11 @@ bool SyslogParser::parseLine(const QString &line, LogEntry &out) const
     const int day = match.captured(QStringLiteral("day")).toInt();
     const QString timeText = match.captured(QStringLiteral("time"));
 
-    // Syslog satirlarinda yil hic yazilmaz -- icinde bulunulan yil varsayilir
-    // (rsyslog gibi araclarin standart davranisi). Eski/arsivlenmis loglarda
-    // bu varsayim yanlis olabilir; bu bilinen bir sinirdir.
-    const int year = QDate::currentDate().year();
+    // Syslog satirlarinda yil hic yazilmaz -- constructor'da verilen referans yil
+    // kullanilir (composition root, dosyanin son degistirilme yilini verebiliyor,
+    // vermezse icinde bulunulan yil kullanilir). Yine de tahmindir; ornegin dosyada
+    // yil sinirini asan (Aralik -> Ocak) kayitlar olursa hala yanilabilir.
+    const int year = m_referenceYear;
     const QDateTime timestamp = QDateTime::fromString(
         QStringLiteral("%1-%2-%3 %4")
             .arg(year)

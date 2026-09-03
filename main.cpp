@@ -1,4 +1,6 @@
 #include <QCoreApplication>
+#include <QDate>
+#include <QDateTime>
 #include <QFileInfo>
 #include <QTextStream>
 #include <QVector>
@@ -75,8 +77,10 @@ int main(int argc, char *argv[])
                 sampleLines.append(sampleReader.readLine());
             sampleReader.close();
         }
+        const QDateTime modified = QFileInfo(options.filePath()).lastModified();
+        const int referenceYear = modified.isValid() ? modified.date().year() : QDate::currentDate().year();
         QString detectedFormatName;
-        parser = ParserLibrary::detect(sampleLines, detectedFormatName);
+        parser = ParserLibrary::detect(sampleLines, referenceYear, detectedFormatName);
         cout << "Algilanan log formati: " << detectedFormatName << "\n";
     }
 

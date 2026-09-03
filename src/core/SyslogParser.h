@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QDate>
 #include <QString>
 
 #include "ILogParser.h"
@@ -11,5 +12,14 @@
 class SyslogParser : public ILogParser
 {
 public:
+    // referenceYear: satirlarda yil olmadigi icin varsayilan olarak kullanilacak yil.
+    // Caginan taraf (composition root), dosyanin son degistirilme yilini vererek
+    // eski/arsivlenmis loglarda daha isabetli bir tahmin yapilmasini saglayabilir --
+    // hic verilmezse icinde bulunulan yil kullanilir.
+    explicit SyslogParser(int referenceYear = QDate::currentDate().year());
+
     bool parseLine(const QString &line, LogEntry &out) const override;
+
+private:
+    int m_referenceYear;
 };

@@ -21,10 +21,11 @@ int scoreParser(const ILogParser &parser, const QStringList &sampleLines)
 
 namespace ParserLibrary {
 
-std::unique_ptr<ILogParser> detect(const QStringList &sampleLines, QString &detectedFormatName)
+std::unique_ptr<ILogParser> detect(const QStringList &sampleLines, int referenceYear,
+                                   QString &detectedFormatName)
 {
     auto generic = std::make_unique<GenericHeuristicParser>();
-    auto syslog = std::make_unique<SyslogParser>();
+    auto syslog = std::make_unique<SyslogParser>(referenceYear);
 
     const int genericScore = scoreParser(*generic, sampleLines);
     const int syslogScore = scoreParser(*syslog, sampleLines);
@@ -36,7 +37,12 @@ std::unique_ptr<ILogParser> detect(const QStringList &sampleLines, QString &dete
         return syslog;
     }
 
-    detectedFormatName = QStringLiteral("Genel (zaman damgasi + seviye)");
+    // genericScore de 0 ise, aslinda HICBIR strateji bu formati tanimadi --
+    // sessizce "Genel" secmek yerine bunu acikca soyluyoruz, kullanici
+    // sonuclarin guvenilir olmayabilecegini bilsin.
+    detectedFormatName = (genericScore > 0)
+        ? QStringLiteral("Genel (zaman damgasi + seviye)")
+        : QStringLiteral("Bilinmiyor (varsayilan kullaniliyor, sonuclar hatali olabilir)");
     return generic;
 }
 
