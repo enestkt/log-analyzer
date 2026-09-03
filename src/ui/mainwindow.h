@@ -5,6 +5,8 @@
 #include <QString>
 #include <QStringList>
 #include <QVector>
+#include <atomic>
+#include <memory>
 
 #include "../core/LogEntry.h"
 #include "../core/LogStats.h"
@@ -15,8 +17,11 @@ class MainWindow;
 
 class QChart;
 class QChartView;
+template<typename T> class QFutureWatcher;
 class QListWidgetItem;
+class LogTableModel;
 class RecentFiles;
+struct GuiAnalysisResult;
 
 class MainWindow : public QMainWindow
 {
@@ -31,21 +36,27 @@ private slots:
     void onSearchClicked();
     void onExportClicked();
     void onRecentFileClicked(QListWidgetItem *item);
+    void onAnalysisFinished();
 
 private:
     void refreshRecentFilesList();
     void applyStyle();
+    void cancelActiveAnalysis();
+    void updateChart();
 
     Ui::MainWindow *ui;
     RecentFiles *m_recentFiles;
 
     QStringList m_filePaths;
-    QVector<LogEntry> m_lastResults;
-    QStringList m_lastSources;   // m_lastResults ile ayni sirada, hangi dosyadan geldigi
     LogStatsResult m_lastStats;
 
     QChart *m_chart;
     QChartView *m_chartView;
+    LogTableModel *m_tableModel;
+    QFutureWatcher<GuiAnalysisResult> *m_analysisWatcher;
+    std::shared_ptr<std::atomic_bool> m_cancelRequested;
+    quint64 m_selectionRevision = 0;
+    quint64 m_analysisRevision = 0;
 };
 
 #endif // MAINWINDOW_H

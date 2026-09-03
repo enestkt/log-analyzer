@@ -1,79 +1,60 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <QAbstractAxis>
 #include <QAbstractItemView>
 #include <QBarCategoryAxis>
 #include <QBarSet>
-#include <QStackedBarSeries>
-#include <QChart>
 #include <QBrush>
+#include <QChart>
 #include <QChartView>
 #include <QCheckBox>
 #include <QColor>
 #include <QDate>
+#include <QDateEdit>
 #include <QDateTime>
-#include <QGuiApplication>
-#include <QScreen>
-#include <QDateTimeEdit>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFont>
+#include <QFuture>
+#include <QFutureWatcher>
+#include <QGuiApplication>
 #include <QHeaderView>
 #include <QListWidgetItem>
 #include <QMessageBox>
 #include <QRegularExpression>
-#include <QTableWidgetItem>
-#include <QVBoxLayout>
+#include <QScreen>
+#include <QStackedBarSeries>
+#include <QTableView>
+#include <QTimeEdit>
+#include <QTimer>
 #include <QValueAxis>
-#include <memory>
+#include <QVBoxLayout>
+#include <QtConcurrent/QtConcurrentRun>
+#include <exception>
 #include <utility>
 
-#include "../core/FileLogReader.h"
-#include "../core/ILogParser.h"
-#include "../core/LogEntry.h"
-#include "../core/LogFilter.h"
 #include "../core/LogLevel.h"
-#include "../core/LogStats.h"
-#include "../core/ParserLibrary.h"
 #include "../core/RegexLogParser.h"
 #include "../export/CsvExporter.h"
 #include "../export/IExporter.h"
 #include "../export/JsonExporter.h"
+#include "LogAnalysisWorker.h"
+#include "LogTableModel.h"
 #include "RecentFiles.h"
 
 namespace {
 
-// Sonuc tablosunda "Seviye" sutununu, onemine gore renklendirmek icin.
-// INFO/DEBUG/TRACE normal metin rengiyle kaliyor -- sadece dikkat cekmesi
-// gereken seviyeler (WARNING/ERROR/CRITICAL) renkli ve kalin gosteriliyor.
-QColor levelColor(LogLevel level)
-{
-    switch (level) {
-    case LogLevel::Warning:  return QColor(0xe0, 0xa5, 0x48);
-    case LogLevel::Error:    return QColor(0xe0, 0x68, 0x5a);
-    case LogLevel::Critical: return QColor(0xff, 0x5c, 0x5c);
-    default:                 return QColor(0xd7, 0xdc, 0xe2);
-    }
-}
-
-bool isAttentionLevel(LogLevel level)
-{
-    return level == LogLevel::Warning || level == LogLevel::Error || level == LogLevel::Critical;
-}
-
-// Grafikte her seviye kendi rengiyle ayirt edilsin diye -- tablodaki gibi
-// sadece onemli seviyeleri degil, hepsini (soguktan sicaga dogru artan bir
-// "ciddiyet" hissi versin diye) farkli renklendiriyoruz.
 QColor chartLevelColor(LogLevel level)
 {
     switch (level) {
-    case LogLevel::Trace:    return QColor(0x3f, 0x56, 0x50);
-    case LogLevel::Debug:    return QColor(0x5e, 0x75, 0x6e);
-    case LogLevel::Info:     return QColor(0x14, 0xb8, 0xa6);
-    case LogLevel::Warning:  return QColor(0xe0, 0xa5, 0x48);
-    case LogLevel::Error:    return QColor(0xe0, 0x68, 0x5a);
-    case LogLevel::Critical: return QColor(0xff, 0x5c, 0x5c);
-    default:                 return QColor(0x93, 0xaa, 0xa4);
+    case LogLevel::Trace:    return QColor(0x94, 0xa3, 0xb8);
+    case LogLevel::Debug:    return QColor(0x64, 0x74, 0x8b);
+    case LogLevel::Info:     return QColor(0x25, 0x63, 0xeb);
+    case LogLevel::Warning:  return QColor(0xf5, 0x9e, 0x0b);
+    case LogLevel::Error:    return QColor(0xef, 0x44, 0x44);
+    case LogLevel::Critical: return QColor(0x99, 0x1b, 0x1b);
+    default:                 return QColor(0x94, 0xa3, 0xb8);
     }
 }
 
@@ -82,51 +63,147 @@ QColor chartLevelColor(LogLevel level)
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , m_recentFiles(nullptr)
+    , m_chart(nullptr)
+    , m_chartView(nullptr)
+    , m_tableModel(nullptr)
+    , m_analysisWatcher(nullptr)
 {
     ui->setupUi(this);
-
     setFont(QFont(QStringLiteral("Segoe UI"), 10));
-    ui->exportButton->setProperty("secondary", true);
 
-    ui->resultTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->resultTableWidget->horizontalHeader()->setStretchLastSection(true);
-    ui->resultTableWidget->setWordWrap(true);
-    ui->resultTableWidget->setAlternatingRowColors(true);
+    ui->exportButton->setProperty("secondary", true);
+    ui->exportButton->setEnabled(false);
+    ui->mainSplitter->setStretchFactor(0, 3);
+    ui->mainSplitter->setStretchFactor(1, 2);
+    ui->mainSplitter->setSizes({740, 500});
+
+    m_tableModel = new LogTableModel(this);
+    ui->resultTableView->setModel(m_tableModel);
+    ui->resultTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->resultTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->resultTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    ui->resultTableView->setWordWrap(false);
+    ui->resultTableView->setAlternatingRowColors(true);
+    ui->resultTableView->setSortingEnabled(true);
+    ui->resultTableView->verticalHeader()->setVisible(false);
+    ui->resultTableView->verticalHeader()->setDefaultSectionSize(30);
+    ui->resultTableView->horizontalHeader()->setStretchLastSection(false);
+    ui->resultTableView->horizontalHeader()->setSectionResizeMode(
+        LogTableModel::TimestampColumn, QHeaderView::ResizeToContents);
+    ui->resultTableView->horizontalHeader()->setSectionResizeMode(
+        LogTableModel::LevelColumn, QHeaderView::ResizeToContents);
+    ui->resultTableView->horizontalHeader()->setSectionResizeMode(
+        LogTableModel::MessageColumn, QHeaderView::Stretch);
+    ui->resultTableView->horizontalHeader()->setSectionResizeMode(
+        LogTableModel::SourceColumn, QHeaderView::ResizeToContents);
 
     m_recentFiles = new RecentFiles(this);
     refreshRecentFilesList();
 
-    connect(ui->openFileButton, &QPushButton::clicked, this, &MainWindow::onOpenFileClicked);
-    connect(ui->searchButton, &QPushButton::clicked, this, &MainWindow::onSearchClicked);
-    connect(ui->exportButton, &QPushButton::clicked, this, &MainWindow::onExportClicked);
-    connect(ui->recentFilesListWidget, &QListWidget::itemClicked, this, &MainWindow::onRecentFileClicked);
-
     m_chart = new QChart();
+    m_chart->setTheme(QChart::ChartThemeLight);
     m_chart->legend()->setVisible(false);
     m_chart->setBackgroundVisible(false);
+    m_chart->setPlotAreaBackgroundVisible(false);
     m_chart->setMargins(QMargins(4, 4, 4, 4));
-
+    m_chart->setTitleBrush(QBrush(QColor(0x64, 0x74, 0x8b)));
     m_chartView = new QChartView(m_chart, this);
     m_chartView->setRenderHint(QPainter::Antialiasing);
-
+    m_chartView->setStyleSheet(QStringLiteral("background: transparent; border: none;"));
     auto *chartLayout = new QVBoxLayout(ui->chartContainer);
+    chartLayout->setContentsMargins(0, 0, 0, 0);
     chartLayout->addWidget(m_chartView);
 
-    ui->fromDateTimeEdit->setDateTime(QDateTime(QDate(2000, 1, 1), QTime(0, 0, 0)));
-    ui->toDateTimeEdit->setDateTime(QDateTime::currentDateTime());
+    ui->fromDateTimeEdit->setDate(QDate::currentDate().addMonths(-1));
+    ui->toDateTimeEdit->setDate(QDate::currentDate());
+    ui->fromTimeEdit->setTime(QTime(0, 0));
+    ui->toTimeEdit->setTime(QTime(23, 59));
 
-    connect(ui->dateRangeCheckBox, &QCheckBox::toggled, ui->fromDateTimeEdit, &QWidget::setEnabled);
-    connect(ui->dateRangeCheckBox, &QCheckBox::toggled, ui->toDateTimeEdit, &QWidget::setEnabled);
+    m_analysisWatcher = new QFutureWatcher<GuiAnalysisResult>(this);
+    connect(m_analysisWatcher, &QFutureWatcher<GuiAnalysisResult>::finished,
+            this, &MainWindow::onAnalysisFinished);
+    connect(ui->openFileButton, &QPushButton::clicked,
+            this, &MainWindow::onOpenFileClicked);
+    connect(ui->searchButton, &QPushButton::clicked,
+            this, &MainWindow::onSearchClicked);
+    connect(ui->exportButton, &QPushButton::clicked,
+            this, &MainWindow::onExportClicked);
+    connect(ui->recentFilesListWidget, &QListWidget::itemClicked,
+            this, &MainWindow::onRecentFileClicked);
+    connect(ui->dateRangeCheckBox, &QCheckBox::toggled,
+            ui->fromDateTimeEdit, &QWidget::setEnabled);
+    connect(ui->dateRangeCheckBox, &QCheckBox::toggled,
+            ui->toDateTimeEdit, &QWidget::setEnabled);
+    const auto updateTimeFieldVisibility = [this] {
+        const bool visible = ui->dateRangeCheckBox->isChecked()
+            && ui->timePrecisionCheckBox->isChecked();
+        ui->fromTimeEdit->setVisible(visible);
+        ui->toTimeEdit->setVisible(visible);
+    };
+    connect(ui->dateRangeCheckBox, &QCheckBox::toggled, this,
+            [this, updateTimeFieldVisibility](bool enabled) {
+                ui->timePrecisionCheckBox->setEnabled(enabled);
+                updateTimeFieldVisibility();
+            });
+    connect(ui->timePrecisionCheckBox, &QCheckBox::toggled, this,
+            [updateTimeFieldVisibility](bool) { updateTimeFieldVisibility(); });
+    updateTimeFieldVisibility();
 
-    // Pencere .ui'deki sabit boyutta acilirsa kucuk ekranlarda alt kismi gorev
-    // cubugunun altinda kalabilir -- acilista, ekranin gercekten gosterebildigi
-    // alana gore boyutu otomatik kucultup ortalıyoruz.
+    connect(ui->quickRangeComboBox, &QComboBox::currentIndexChanged, this,
+            [this](int index) {
+                if (index == 0)
+                    return;
+
+                const QDateTime now = QDateTime::currentDateTime();
+                QDateTime from = now;
+                QDateTime to = now;
+                bool includeTime = true;
+                switch (index) {
+                case 1: from = now.addSecs(-15 * 60); break;
+                case 2: from = now.addSecs(-60 * 60); break;
+                case 3:
+                    from = QDateTime(now.date(), QTime(0, 0));
+                    to = QDateTime(now.date(), QTime(23, 59, 59, 999));
+                    includeTime = false;
+                    break;
+                case 4: from = now.addSecs(-24 * 60 * 60); break;
+                default: return;
+                }
+
+                ui->dateRangeCheckBox->setChecked(true);
+                ui->timePrecisionCheckBox->setChecked(includeTime);
+                ui->fromDateTimeEdit->setDate(from.date());
+                ui->toDateTimeEdit->setDate(to.date());
+                ui->fromTimeEdit->setTime(QTime(from.time().hour(), from.time().minute()));
+                ui->toTimeEdit->setTime(QTime(to.time().hour(), to.time().minute()));
+            });
+    const auto markRangeAsCustom = [this] { ui->quickRangeComboBox->setCurrentIndex(0); };
+    connect(ui->fromDateTimeEdit, &QDateEdit::editingFinished, this, markRangeAsCustom);
+    connect(ui->toDateTimeEdit, &QDateEdit::editingFinished, this, markRangeAsCustom);
+    connect(ui->fromTimeEdit, &QTimeEdit::editingFinished, this, markRangeAsCustom);
+    connect(ui->toTimeEdit, &QTimeEdit::editingFinished, this, markRangeAsCustom);
+    connect(ui->dateRangeCheckBox, &QCheckBox::clicked, this,
+            [this](bool) { ui->quickRangeComboBox->setCurrentIndex(0); });
+    connect(ui->timePrecisionCheckBox, &QCheckBox::clicked, this,
+            [this](bool) { ui->quickRangeComboBox->setCurrentIndex(0); });
+    const auto setAdvancedFieldsVisible = [this](bool visible) {
+        ui->patternLineEdit->setVisible(visible);
+        ui->timestampFormatLineEdit->setVisible(visible);
+        ui->advancedGroupBox->setMaximumHeight(visible ? QWIDGETSIZE_MAX : 28);
+        ui->filtersCard->updateGeometry();
+    };
+    connect(ui->advancedGroupBox, &QGroupBox::toggled,
+            this, setAdvancedFieldsVisible);
+    setAdvancedFieldsVisible(ui->advancedGroupBox->isChecked());
+
     if (QScreen *screen = QGuiApplication::primaryScreen()) {
-        const QRect avail = screen->availableGeometry();
-        const int targetWidth = qMin(width(), avail.width() - 60);
-        const int targetHeight = qMin(height(), avail.height() - 60);
+        const QRect available = screen->availableGeometry();
+        const int targetWidth = qMin(width(), available.width() - 40);
+        const int targetHeight = qMin(height(), available.height() - 40);
         resize(targetWidth, targetHeight);
-        move(avail.center().x() - targetWidth / 2, avail.center().y() - targetHeight / 2);
+        move(available.center().x() - targetWidth / 2,
+             available.center().y() - targetHeight / 2);
     }
 
     applyStyle();
@@ -134,189 +211,219 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    cancelActiveAnalysis();
+    if (m_analysisWatcher->isRunning())
+        m_analysisWatcher->future().waitForFinished();
     delete ui;
 }
 
 void MainWindow::applyStyle()
 {
     setStyleSheet(QStringLiteral(R"(
-        /* ---- pencere zemini ---- */
         QMainWindow, QWidget#centralwidget {
-            background-color: #101816;
+            background-color: #f3f5f8;
+            color: #1f2937;
         }
+        QWidget { font-family: "Segoe UI"; }
+        QLabel { color: #334155; }
+        QLabel#appTitleLabel { color: #111827; font-size: 22px; font-weight: 700; }
+        QLabel#appSubtitleLabel { color: #64748b; font-size: 11px; }
+        QLabel#statusPillLabel {
+            color: #1d4ed8;
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 12px;
+            padding: 5px 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        QLabel#filePathLabel { color: #64748b; }
+        QLabel#recentTitleLabel { color: #64748b; font-size: 11px; }
+        QLabel#resultCountLabel { color: #475569; font-weight: 600; }
+        QLabel#chartTitleLabel { color: #111827; font-size: 13px; font-weight: 700; }
 
-        /* ---- sol panel kaydirma alani -- kendi arka plani olmasin, altindaki
-               pencere zeminiyle ayni gorunsun ---- */
-        QScrollArea, QScrollArea > QWidget, QWidget#leftPanelWidget {
+        QFrame#sourceCard, QFrame#filtersCard, QWidget#chartCard {
+            background-color: #ffffff;
+            border: 1px solid #dde3ea;
+            border-radius: 8px;
+        }
+        QGroupBox#resultsGroupBox {
+            background-color: #ffffff;
+            border: 1px solid #dde3ea;
+            border-radius: 8px;
+            margin-top: 12px;
+            padding: 12px 10px 10px 10px;
+            color: #111827;
+            font-weight: 700;
+        }
+        QGroupBox#resultsGroupBox::title {
+            subcontrol-origin: margin;
+            left: 12px;
+            padding: 0 5px;
+            color: #111827;
+        }
+        QGroupBox#advancedGroupBox {
             background: transparent;
             border: none;
-        }
-
-        /* ---- kart gruplari (Dosyalar / Filtreler / Sonuclar) ---- */
-        QGroupBox {
-            background-color: #172422;
-            border: 1px solid #263a35;
-            border-radius: 8px;
-            margin-top: 14px;
-            padding: 14px 12px 12px 12px;
+            margin-top: 5px;
+            padding-top: 7px;
+            color: #64748b;
+            font-size: 11px;
             font-weight: 600;
-            color: #e6eae8;
         }
-        QGroupBox::title {
-            subcontrol-origin: margin;
-            subcontrol-position: top left;
-            left: 12px;
-            top: -2px;
-            padding: 0 6px;
-            color: #5eead4;
-            letter-spacing: 0.3px;
-        }
+        QGroupBox#advancedGroupBox::title { subcontrol-origin: margin; left: 2px; }
 
-        /* ---- grafik basligi (chartTitleLabel) ---- */
-        QLabel#chartTitleLabel {
-            font-weight: 600;
-            font-size: 13px;
-            color: #5eead4;
-            padding-left: 2px;
-        }
-
-        /* ---- grafik karti ---- */
-        QWidget#chartContainer {
-            background-color: #172422;
-            border: 1px solid #263a35;
-            border-radius: 8px;
-        }
-
-        /* ---- butonlar: birincil (Ara) ---- */
-        QPushButton {
-            background-color: #14b8a6;
-            color: #ffffff;
-            border: none;
+        QLineEdit, QComboBox, QDateEdit, QTimeEdit {
+            background-color: #ffffff;
+            color: #1f2937;
+            border: 1px solid #cbd5e1;
             border-radius: 6px;
-            padding: 8px 16px;
+            padding: 6px 9px;
+            selection-background-color: #2563eb;
+        }
+        QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QTimeEdit:focus { border-color: #2563eb; }
+        QDateEdit:disabled, QTimeEdit:disabled, QLineEdit:disabled {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+            border-color: #e2e8f0;
+        }
+        QComboBox::drop-down, QDateEdit::drop-down, QTimeEdit::drop-down { border: none; width: 22px; }
+        QComboBox QAbstractItemView {
+            background-color: #ffffff;
+            color: #1f2937;
+            border: 1px solid #cbd5e1;
+            selection-background-color: #dbeafe;
+            selection-color: #1e3a8a;
+        }
+
+        QPushButton {
+            background-color: #2563eb;
+            color: #ffffff;
+            border: 1px solid #2563eb;
+            border-radius: 6px;
+            padding: 7px 15px;
             font-weight: 600;
         }
-        QPushButton:hover { background-color: #2dd4bf; }
-        QPushButton:pressed { background-color: #0d9488; }
-        QPushButton:disabled { background-color: #2c3d38; color: #6d8078; }
-
-        /* ---- ikincil buton (Disa Aktar) -- dinamik "secondary" property ile ---- */
+        QPushButton:hover { background-color: #1d4ed8; border-color: #1d4ed8; }
+        QPushButton:pressed { background-color: #1e40af; }
+        QPushButton:disabled {
+            background-color: #cbd5e1;
+            border-color: #cbd5e1;
+            color: #f8fafc;
+        }
         QPushButton[secondary="true"] {
-            background-color: transparent;
-            color: #5eead4;
-            border: 1px solid #0f766e;
+            background-color: #ffffff;
+            color: #334155;
+            border: 1px solid #cbd5e1;
         }
         QPushButton[secondary="true"]:hover {
-            background-color: rgba(20, 184, 166, 0.15);
-            border-color: #14b8a6;
-        }
-        QPushButton[secondary="true"]:pressed {
-            background-color: rgba(20, 184, 166, 0.28);
+            background-color: #f8fafc;
+            border-color: #94a3b8;
         }
 
-        /* ---- metin/tarih giris kutulari ---- */
-        QLineEdit, QComboBox, QDateTimeEdit {
-            background-color: #1e2b28;
-            border: 1px solid #2f423e;
-            border-radius: 5px;
-            padding: 6px 8px;
-            color: #e6eae8;
-            selection-background-color: #14b8a6;
+        QCheckBox { color: #334155; spacing: 8px; }
+        QCheckBox#timePrecisionCheckBox { font-weight: 600; }
+        QCheckBox#timePrecisionCheckBox:disabled { color: #94a3b8; }
+        QCheckBox::indicator, QGroupBox#advancedGroupBox::indicator {
+            width: 17px;
+            height: 17px;
+            background-color: #ffffff;
+            border: 2px solid #2563eb;
+            border-radius: 4px;
         }
-        QLineEdit:focus, QComboBox:focus, QDateTimeEdit:focus {
-            border: 1px solid #14b8a6;
+        QCheckBox::indicator:hover, QGroupBox#advancedGroupBox::indicator:hover {
+            background-color: #eff6ff;
+            border-color: #1d4ed8;
         }
-        QLineEdit:disabled, QDateTimeEdit:disabled {
-            color: #5e756e;
-            background-color: #182422;
+        QCheckBox::indicator:checked, QGroupBox#advancedGroupBox::indicator:checked {
+            background-color: #ffffff;
+            border-color: #2563eb;
+            image: url(:/icons/check.xpm);
         }
-        QComboBox::drop-down { border: none; width: 22px; }
-        QComboBox QAbstractItemView {
-            background-color: #1e2b28;
-            color: #e6eae8;
-            border: 1px solid #2f423e;
-            selection-background-color: #14b8a6;
+        QCheckBox::indicator:disabled {
+            background-color: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        QGroupBox#advancedGroupBox::title {
+            color: #1e40af;
+            font-weight: 700;
+        }
+        QListWidget {
+            background-color: #f8fafc;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
             outline: none;
         }
+        QListWidget::item { padding: 4px 7px; }
+        QListWidget::item:selected { background-color: #dbeafe; color: #1e40af; }
 
-        QCheckBox { color: #c4d1cd; spacing: 8px; }
-        QCheckBox::indicator {
-            width: 16px; height: 16px;
-            border: 1px solid #43605a;
-            border-radius: 3px;
-            background-color: #1e2b28;
-        }
-        QCheckBox::indicator:checked {
-            background-color: #14b8a6;
-            border-color: #14b8a6;
-        }
-
-        /* ---- son acilan dosyalar listesi ---- */
-        QListWidget {
-            background-color: #0f1614;
-            border: 1px solid #263a35;
+        QTableView {
+            background-color: #ffffff;
+            alternate-background-color: #f8fafc;
+            color: #334155;
+            border: 1px solid #e2e8f0;
             border-radius: 5px;
-            color: #c4d1cd;
-        }
-        QListWidget::item { padding: 3px 4px; }
-        QListWidget::item:selected { background-color: #14b8a6; color: #ffffff; }
-
-        /* ---- sonuc tablosu ---- */
-        QTableWidget {
-            background-color: #0f1614;
-            alternate-background-color: #14201d;
-            gridline-color: #263a35;
-            color: #d4e0db;
-            border: 1px solid #263a35;
-            border-radius: 5px;
+            gridline-color: #e2e8f0;
         }
         QHeaderView::section {
-            background-color: #1e2b28;
-            color: #93aaa4;
-            padding: 6px;
+            background-color: #f8fafc;
+            color: #64748b;
             border: none;
-            border-bottom: 1px solid #263a35;
-            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 8px;
             font-size: 11px;
+            font-weight: 600;
         }
-        QTableWidget::item:selected { background-color: rgba(20, 184, 166, 0.35); }
-
-        /* ---- kaydirma cubuklari ---- */
-        QScrollBar:vertical {
-            background: transparent; width: 10px; margin: 0;
-        }
+        QTableView::item { padding: 5px; }
+        QTableView::item:selected { background-color: #dbeafe; color: #1e3a8a; }
+        QSplitter::handle { background: transparent; width: 8px; }
+        QScrollBar:vertical { background: transparent; width: 10px; margin: 0; }
         QScrollBar::handle:vertical {
-            background: #2f423e; border-radius: 5px; min-height: 24px;
+            background: #cbd5e1;
+            border-radius: 5px;
+            min-height: 26px;
         }
-        QScrollBar::handle:vertical:hover { background: #43605a; }
+        QScrollBar::handle:vertical:hover { background: #94a3b8; }
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
-
-        /* ---- genel etiketler ---- */
-        QLabel { color: #c4d1cd; }
-        QLabel#filePathLabel { color: #93aaa4; font-style: italic; }
-        QLabel#resultCountLabel { color: #e6eae8; font-weight: 600; }
+        QMenuBar, QStatusBar { background-color: #f3f5f8; color: #64748b; }
     )"));
 }
 
 void MainWindow::refreshRecentFilesList()
 {
     ui->recentFilesListWidget->clear();
-    ui->recentFilesListWidget->addItems(m_recentFiles->files());
+    for (const QString &path : m_recentFiles->files()) {
+        auto *item = new QListWidgetItem(QFileInfo(path).fileName());
+        item->setData(Qt::UserRole, path);
+        item->setToolTip(path);
+        ui->recentFilesListWidget->addItem(item);
+    }
+}
+
+void MainWindow::cancelActiveAnalysis()
+{
+    if (m_cancelRequested)
+        m_cancelRequested->store(true, std::memory_order_relaxed);
 }
 
 void MainWindow::onOpenFileClicked()
 {
-    // getOpenFileNames (COGUL) -- kullanici Ctrl/Shift ile birden fazla dosya secebilir.
-    const QStringList paths = QFileDialog::getOpenFileNames(this, QStringLiteral("Log dosyasi (veya dosyalari) sec"),
-                                                      QString(),
-                                                      QStringLiteral("Log dosyalari (*.log *.txt);;Tum dosyalar (*)"));
+    const QStringList paths = QFileDialog::getOpenFileNames(
+        this, QStringLiteral("Log dosyası seç"), QString(),
+        QStringLiteral("Log dosyaları (*.log *.txt);;Tüm dosyalar (*)"));
     if (paths.isEmpty())
         return;
 
+    cancelActiveAnalysis();
+    ++m_selectionRevision;
     m_filePaths = paths;
-    ui->filePathLabel->setText(m_filePaths.size() == 1
-        ? m_filePaths.first()
-        : QStringLiteral("%1 dosya secildi").arg(m_filePaths.size()));
+    ui->filePathLabel->setText(paths.size() == 1
+        ? paths.first()
+        : QStringLiteral("%1 dosya seçildi").arg(paths.size()));
+    ui->statusPillLabel->setText(m_analysisWatcher->isRunning()
+        ? QStringLiteral("Eski analiz iptal ediliyor")
+        : QStringLiteral("Yeni dosya hazır"));
 
     for (const QString &path : paths)
         m_recentFiles->add(path);
@@ -325,179 +432,193 @@ void MainWindow::onOpenFileClicked()
 
 void MainWindow::onRecentFileClicked(QListWidgetItem *item)
 {
-    // Son acilanlardan tiklamak, secimi TEK dosyaya cevirir (coklu secim burada yapilmaz).
-    m_filePaths = { item->text() };
-    ui->filePathLabel->setText(item->text());
+    const QString path = item->data(Qt::UserRole).toString();
+    if (path.isEmpty())
+        return;
 
-    m_recentFiles->add(item->text());
-    refreshRecentFilesList();
+    cancelActiveAnalysis();
+    ++m_selectionRevision;
+    m_filePaths = {path};
+    ui->filePathLabel->setText(path);
+    ui->statusPillLabel->setText(m_analysisWatcher->isRunning()
+        ? QStringLiteral("Eski analiz iptal ediliyor")
+        : QStringLiteral("Yeni dosya hazır"));
+
+    m_recentFiles->add(path);
+    QTimer::singleShot(0, this, &MainWindow::refreshRecentFilesList);
 }
 
 void MainWindow::onSearchClicked()
 {
+    if (m_analysisWatcher->isRunning())
+        return;
+
     if (m_filePaths.isEmpty()) {
-        QMessageBox::warning(this, QStringLiteral("Dosya secilmedi"),
-                             QStringLiteral("Once bir log dosyasi secmelisin."));
+        QMessageBox::warning(this, QStringLiteral("Dosya seçilmedi"),
+                             QStringLiteral("Önce bir log dosyası seçmelisin."));
         return;
     }
 
-    // --- Arama kutusundaki regex gecerli mi (once bunu kontrol et, sessizce yutma) ---
-    if (!ui->searchLineEdit->text().isEmpty()) {
-        const QRegularExpression searchCheck(ui->searchLineEdit->text());
-        if (!searchCheck.isValid()) {
-            QMessageBox::critical(this, QStringLiteral("Arama hatasi"),
-                                   QStringLiteral("Arama kutusundaki regex gecersiz: %1")
-                                       .arg(searchCheck.errorString()));
-            return;
+    const QRegularExpression searchPattern(ui->searchLineEdit->text());
+    if (!ui->searchLineEdit->text().isEmpty() && !searchPattern.isValid()) {
+        QMessageBox::critical(this, QStringLiteral("Arama hatası"),
+                              QStringLiteral("Arama regex'i geçersiz: %1")
+                                  .arg(searchPattern.errorString()));
+        return;
+    }
+
+    QDateTime fromDateTime;
+    QDateTime toDateTime;
+    if (ui->dateRangeCheckBox->isChecked()) {
+        if (ui->timePrecisionCheckBox->isChecked()) {
+            const QTime fromTime = ui->fromTimeEdit->time();
+            const QTime toTime = ui->toTimeEdit->time();
+            fromDateTime = QDateTime(ui->fromDateTimeEdit->date(),
+                                     QTime(fromTime.hour(), fromTime.minute(), 0, 0));
+            // Dakika secimi o dakikanin tamamini kapsar.
+            toDateTime = QDateTime(ui->toDateTimeEdit->date(),
+                                   QTime(toTime.hour(), toTime.minute(), 59, 999));
+        } else {
+            fromDateTime = QDateTime(ui->fromDateTimeEdit->date(), QTime(0, 0, 0, 0));
+            toDateTime = QDateTime(ui->toDateTimeEdit->date(), QTime(23, 59, 59, 999));
         }
     }
-
-    // --- Parser: kutu doluysa RegexLogParser (ozel format) her dosyada aynen kullanilir;
-    //     bosaysa HER DOSYA icin hazir format kutuphanesinden (ParserLibrary) otomatik secilir ---
-    const bool useCustomPattern = !ui->patternLineEdit->text().isEmpty();
-    QRegularExpression customPattern;
-    QString customTimestampFormat;
-    if (useCustomPattern) {
-        customPattern = QRegularExpression(ui->patternLineEdit->text());
-        customTimestampFormat = ui->timestampFormatLineEdit->text().isEmpty()
-                                    ? RegexLogParser::defaultTimestampFormat()
-                                    : ui->timestampFormatLineEdit->text();
+    if (ui->dateRangeCheckBox->isChecked() && fromDateTime > toDateTime) {
+        QMessageBox::warning(this, QStringLiteral("Geçersiz tarih aralığı"),
+                             QStringLiteral("Başlangıç tarihi bitiş tarihinden sonra olamaz."));
+        return;
     }
 
-    // --- Filtreyi kur (tum dosyalar icin ortak) ---
-    LogFilter filter;
-    if (!ui->searchLineEdit->text().isEmpty())
-        filter.setSearchPattern(QRegularExpression(ui->searchLineEdit->text()));
+    GuiAnalysisRequest request;
+    request.filePaths = m_filePaths;
+    request.searchPattern = searchPattern;
+    request.dateRangeEnabled = ui->dateRangeCheckBox->isChecked();
+    request.fromDateTime = fromDateTime;
+    request.toDateTime = toDateTime;
 
     const QString levelText = ui->levelComboBox->currentText();
     if (levelText != QStringLiteral("Tümü"))
-        filter.setMinLevel(logLevelFromString(levelText));
+        request.minimumLevel = logLevelFromString(levelText);
 
-    if (ui->dateRangeCheckBox->isChecked()) {
-        if (ui->fromDateTimeEdit->dateTime() > ui->toDateTimeEdit->dateTime()) {
-            QMessageBox::warning(this, QStringLiteral("Gecersiz tarih araligi"),
-                                 QStringLiteral("Baslangic tarihi bitis tarihinden sonra olamaz."));
+    request.customParserEnabled = !ui->patternLineEdit->text().isEmpty();
+    if (request.customParserEnabled) {
+        request.customParserPattern = QRegularExpression(ui->patternLineEdit->text());
+        request.customTimestampFormat = ui->timestampFormatLineEdit->text().isEmpty()
+            ? RegexLogParser::defaultTimestampFormat()
+            : ui->timestampFormatLineEdit->text();
+    }
+
+    m_tableModel->clear();
+    m_lastStats = {};
+    updateChart();
+    ui->resultCountLabel->setText(QStringLiteral("Dosyalar arka planda analiz ediliyor…"));
+    ui->statusPillLabel->setText(QStringLiteral("Analiz ediliyor"));
+    ui->searchButton->setEnabled(false);
+    ui->openFileButton->setEnabled(true);
+    ui->exportButton->setEnabled(false);
+
+    m_cancelRequested = std::make_shared<std::atomic_bool>(false);
+    m_analysisRevision = m_selectionRevision;
+    m_analysisWatcher->setFuture(QtConcurrent::run(
+        &LogAnalysisWorker::run, std::move(request), m_cancelRequested));
+}
+
+void MainWindow::onAnalysisFinished()
+{
+    ui->searchButton->setEnabled(true);
+    GuiAnalysisResult result;
+    try {
+        result = m_analysisWatcher->future().takeResult();
+    } catch (const std::exception &error) {
+        if (m_analysisRevision != m_selectionRevision) {
+            ui->statusPillLabel->setText(QStringLiteral("Yeni dosya hazır"));
+            ui->resultCountLabel->setText(QStringLiteral("Önceki analiz iptal edildi"));
             return;
         }
-        filter.setTimeRange(ui->fromDateTimeEdit->dateTime(), ui->toDateTimeEdit->dateTime());
-    }
-
-    // --- Her dosyayi sirayla ac, oku, filtrele, say ---
-    // LogStats zaten "akis boyunca biriktiren" bir sinif oldugu icin, birden fazla
-    // dosya uzerinde ust uste cagirmak sorun degil -- CLI'deki tek dosyalik dongunun
-    // AYNISI, sadece disina bir "her dosya icin" dongusu eklendi.
-    LogStats stats;
-    QVector<LogEntry> filteredEntries;
-    QStringList sources;   // filteredEntries ile ayni sirada, hangi dosyadan geldigi
-
-    for (const QString &filePath : std::as_const(m_filePaths)) {
-        std::unique_ptr<ILogParser> parser;
-        if (useCustomPattern) {
-            QString parserError;
-            std::unique_ptr<RegexLogParser> regexParser =
-                RegexLogParser::create(customPattern, customTimestampFormat, parserError);
-            if (!regexParser) {
-                QMessageBox::critical(this, QStringLiteral("Pattern hatasi"), parserError);
-                return;
-            }
-            parser = std::move(regexParser);
-        } else {
-            QStringList sampleLines;
-            FileLogReader sampleReader;
-            QString sampleError;
-            if (sampleReader.open(filePath, sampleError)) {
-                while (!sampleReader.atEnd() && sampleLines.size() < 20)
-                    sampleLines.append(sampleReader.readLine());
-                sampleReader.close();
-            }
-            const QDateTime modified = QFileInfo(filePath).lastModified();
-            const int referenceYear = modified.isValid() ? modified.date().year() : QDate::currentDate().year();
-            QString detectedFormatName;
-            parser = ParserLibrary::detect(sampleLines, referenceYear, detectedFormatName);
-        }
-
-        FileLogReader reader;
-        QString readerError;
-        if (!reader.open(filePath, readerError)) {
-            QMessageBox::critical(this, QStringLiteral("Dosya hatasi"),
-                                   QStringLiteral("%1: %2").arg(filePath, readerError));
+        ui->statusPillLabel->setText(QStringLiteral("Hata"));
+        ui->resultCountLabel->setText(QStringLiteral("Analiz beklenmeyen bir hatayla durdu"));
+        QMessageBox::critical(this, QStringLiteral("Analiz hatası"),
+                              QString::fromUtf8(error.what()));
+        return;
+    } catch (...) {
+        if (m_analysisRevision != m_selectionRevision) {
+            ui->statusPillLabel->setText(QStringLiteral("Yeni dosya hazır"));
+            ui->resultCountLabel->setText(QStringLiteral("Önceki analiz iptal edildi"));
             return;
         }
-
-        const QString sourceName = QFileInfo(filePath).fileName();
-
-        while (!reader.atEnd()) {
-            const QString line = reader.readLine();
-            stats.addRawLineSeen();
-
-            LogEntry entry;
-            if (!parser->parseLine(line, entry)) {
-                stats.addUnparsedLine();
-                continue;
-            }
-
-            const bool passedFilter = filter.matches(entry);
-            stats.addEntry(entry, passedFilter);
-
-            if (passedFilter) {
-                filteredEntries.append(entry);
-                sources.append(sourceName);
-            }
-        }
-        reader.close();
+        ui->statusPillLabel->setText(QStringLiteral("Hata"));
+        ui->resultCountLabel->setText(QStringLiteral("Analiz beklenmeyen bir hatayla durdu"));
+        QMessageBox::critical(this, QStringLiteral("Analiz hatası"),
+                              QStringLiteral("Bilinmeyen bir worker hatası oluştu."));
+        return;
     }
 
-    m_lastResults = filteredEntries;
-    m_lastSources = sources;
-    m_lastStats = stats.result();
-
-    // --- Sonucu goster: artik parse edilemeyen sayisi da gorunuyor ---
-    ui->resultCountLabel->setText(
-        QStringLiteral("Sonuc: %1  (%2 dosya, toplam satir: %3, ayristirilamayan: %4)")
-            .arg(filteredEntries.size())
-            .arg(m_filePaths.size())
-            .arg(m_lastStats.totalLines)
-            .arg(m_lastStats.unparsedLines));
-
-    ui->resultTableWidget->setRowCount(filteredEntries.size());
-    for (int row = 0; row < filteredEntries.size(); ++row) {
-        const LogEntry &entry = filteredEntries.at(row);
-        ui->resultTableWidget->setItem(row, 0, new QTableWidgetItem(entry.timestamp.toString(Qt::ISODate)));
-
-        auto *levelItem = new QTableWidgetItem(logLevelToString(entry.level));
-        levelItem->setForeground(QBrush(levelColor(entry.level)));
-        if (isAttentionLevel(entry.level)) {
-            QFont boldFont = levelItem->font();
-            boldFont.setBold(true);
-            levelItem->setFont(boldFont);
-        }
-        ui->resultTableWidget->setItem(row, 1, levelItem);
-
-        ui->resultTableWidget->setItem(row, 2, new QTableWidgetItem(entry.message));
-        ui->resultTableWidget->setItem(row, 3, new QTableWidgetItem(m_lastSources.at(row)));
+    // Worker tam biterken kullanici baska dosya secmisse atomik iptal kontrolune
+    // yetisememis olabilir. Revizyon kontrolu eski sonucu ekrana basmayi engeller.
+    if (m_analysisRevision != m_selectionRevision) {
+        ui->statusPillLabel->setText(QStringLiteral("Yeni dosya hazır"));
+        ui->resultCountLabel->setText(QStringLiteral("Önceki analiz iptal edildi"));
+        return;
     }
-    ui->resultTableWidget->resizeRowsToContents();
 
-    // --- Grafigi guncelle ---
+    if (result.cancelled) {
+        ui->statusPillLabel->setText(QStringLiteral("Yeni dosya hazır"));
+        ui->resultCountLabel->setText(QStringLiteral("Önceki analiz iptal edildi"));
+        return;
+    }
+
+    if (!result.errorMessage.isEmpty()) {
+        ui->statusPillLabel->setText(QStringLiteral("Hata"));
+        ui->resultCountLabel->setText(QStringLiteral("Analiz tamamlanamadı"));
+        QMessageBox::critical(this, result.errorTitle, result.errorMessage);
+        return;
+    }
+
+    m_lastStats = result.stats;
+    const qsizetype resultCount = result.entries.size();
+    m_tableModel->setResults(std::move(result.entries), std::move(result.sources));
+    ui->exportButton->setEnabled(resultCount > 0);
+    ui->statusPillLabel->setText(QStringLiteral("Tamamlandı"));
+
+    QString resultText = QStringLiteral(
+        "%1 sonuç · %2 dosya · %3 satır · %4 ayrıştırılamayan")
+        .arg(resultCount)
+        .arg(result.fileCount)
+        .arg(m_lastStats.totalLines)
+        .arg(m_lastStats.unparsedLines);
+    if (resultCount == 0 && result.dateRangeEnabled && m_lastStats.totalLines > 0)
+        resultText += QStringLiteral(" · Seçilen tarih aralığında kayıt yok");
+    ui->resultCountLabel->setText(resultText);
+    updateChart();
+}
+
+void MainWindow::updateChart()
+{
     m_chart->removeAllSeries();
     for (QAbstractAxis *axis : m_chart->axes()) {
         m_chart->removeAxis(axis);
         axis->deleteLater();
     }
 
-    // Her seviye kendi renginde, ayri bir QBarSet -- QStackedBarSeries'te ustuste
-    // "istifleniyor" ama her kategoride sadece bir set sifirdan farkli oldugu icin
-    // gorsel olarak her seviye, kendi renginde, tam genislikte tek bir bar oluyor.
+    if (m_lastStats.countsByLevel.isEmpty()) {
+        m_chart->setTitle(QStringLiteral("Gösterilecek veri yok"));
+        return;
+    }
+    m_chart->setTitle(QString());
+
     QStringList categories;
-    for (auto it = m_lastStats.countsByLevel.constBegin(); it != m_lastStats.countsByLevel.constEnd(); ++it)
+    for (auto it = m_lastStats.countsByLevel.constBegin();
+         it != m_lastStats.countsByLevel.constEnd(); ++it) {
         categories << logLevelToString(it.key());
+    }
 
     auto *series = new QStackedBarSeries();
     int levelIndex = 0;
-    for (auto it = m_lastStats.countsByLevel.constBegin(); it != m_lastStats.countsByLevel.constEnd(); ++it, ++levelIndex) {
+    for (auto it = m_lastStats.countsByLevel.constBegin();
+         it != m_lastStats.countsByLevel.constEnd(); ++it, ++levelIndex) {
         auto *barSet = new QBarSet(logLevelToString(it.key()));
-        for (int i = 0; i < categories.size(); ++i)
-            *barSet << (i == levelIndex ? it.value() : 0);
+        for (int index = 0; index < categories.size(); ++index)
+            *barSet << (index == levelIndex ? it.value() : 0);
         barSet->setColor(chartLevelColor(it.key()));
         series->append(barSet);
     }
@@ -505,37 +626,46 @@ void MainWindow::onSearchClicked()
 
     auto *axisX = new QBarCategoryAxis();
     axisX->append(categories);
+    axisX->setLabelsBrush(QBrush(QColor(0x64, 0x74, 0x8b)));
+    axisX->setGridLineVisible(false);
     m_chart->addAxis(axisX, Qt::AlignBottom);
     series->attachAxis(axisX);
 
     auto *axisY = new QValueAxis();
+    axisY->setLabelsBrush(QBrush(QColor(0x64, 0x74, 0x8b)));
+    axisY->setGridLineColor(QColor(0xe2, 0xe8, 0xf0));
+    axisY->setLabelFormat(QStringLiteral("%d"));
     m_chart->addAxis(axisY, Qt::AlignLeft);
     series->attachAxis(axisY);
+    axisY->applyNiceNumbers();
 }
 
 void MainWindow::onExportClicked()
 {
-    if (m_lastResults.isEmpty()) {
-        QMessageBox::information(this, QStringLiteral("Sonuc yok"),
-                                  QStringLiteral("Once bir arama yapip sonuc elde etmelisin."));
+    if (m_tableModel->entries().isEmpty()) {
+        QMessageBox::information(this, QStringLiteral("Sonuç yok"),
+                                 QStringLiteral("Önce bir analiz yapıp sonuç elde etmelisin."));
         return;
     }
 
-    const QString path = QFileDialog::getSaveFileName(this, QStringLiteral("Disa aktar"), QString(),
-                                                        QStringLiteral("CSV dosyasi (*.csv);;JSON dosyasi (*.json)"));
+    const QString path = QFileDialog::getSaveFileName(
+        this, QStringLiteral("Dışa aktar"), QString(),
+        QStringLiteral("CSV dosyası (*.csv);;JSON dosyası (*.json)"));
     if (path.isEmpty())
         return;
 
-    std::unique_ptr<IExporter> exporter = path.endsWith(QStringLiteral(".json"), Qt::CaseInsensitive)
+    std::unique_ptr<IExporter> exporter = path.endsWith(
+        QStringLiteral(".json"), Qt::CaseInsensitive)
         ? std::unique_ptr<IExporter>(std::make_unique<JsonExporter>())
         : std::unique_ptr<IExporter>(std::make_unique<CsvExporter>());
 
     QString exportError;
-    if (!exporter->exportTo(m_lastResults, m_lastSources, m_lastStats, path, exportError)) {
-        QMessageBox::critical(this, QStringLiteral("Disa aktarma hatasi"), exportError);
+    if (!exporter->exportTo(m_tableModel->entries(), m_tableModel->sources(),
+                            m_lastStats, path, exportError)) {
+        QMessageBox::critical(this, QStringLiteral("Dışa aktarma hatası"), exportError);
         return;
     }
 
-    QMessageBox::information(this, QStringLiteral("Tamamlandi"),
-                              QStringLiteral("Disa aktarildi: %1").arg(path));
+    QMessageBox::information(this, QStringLiteral("Tamamlandı"),
+                             QStringLiteral("Dışa aktarıldı: %1").arg(path));
 }

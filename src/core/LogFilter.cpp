@@ -92,6 +92,12 @@ void LogFilter::setTimeRange(const QDateTime &from, const QDateTime &to)
     m_to = to;
 }
 
+void LogFilter::setDateRange(const QDate &from, const QDate &to)
+{
+    m_from = from.isValid() ? QDateTime(from, QTime(0, 0, 0, 0)) : QDateTime();
+    m_to = to.isValid() ? QDateTime(to, QTime(23, 59, 59, 999)) : QDateTime();
+}
+
 void LogFilter::setMinLevel(LogLevel level)
 {
     m_minLevel = level;

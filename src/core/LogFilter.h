@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QDate>
 #include <QDateTime>
 #include <QRegularExpression>
 
@@ -13,6 +14,10 @@ public:
     // from/to gecersizse (QDateTime::isValid() == false) o yondeki sinir uygulanmaz.
 
     void setTimeRange(const QDateTime &from, const QDateTime &to);
+
+    // Takvimden secilen gunleri tam gun olarak ve iki ucu dahil filtreler.
+    // Ornegin 12 Agustos bitis tarihi, 12 Agustos 23:59:59.999'u da kapsar.
+    void setDateRange(const QDate &from, const QDate &to);
 
     // LogLevel::Unknown verilirse seviye filtresi devre disi kalir.
     void setMinLevel(LogLevel level);

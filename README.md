@@ -17,6 +17,8 @@ Büyük log dosyalarını (cihaz logları, uygulama logları) satır satır okuy
 | Metin arama | Mesaj içinde regex tabanlı arama; düz kelimelerde küçük yazım hatalarına (1-2 harf farkına) tolerans vardır |
 | Çoklu dosya seçimi (GUI) | GUI'de birden fazla log dosyası birlikte seçilip aynı filtreyle taranabilir; farklı formatlı dosyalar bir arada seçilse bile her biri kendi formatına göre ayrı ayrı algılanır; sonuç tablosunda her satırın hangi dosyadan geldiği "Kaynak" sütununda görünür |
 | Grafik (GUI) | Seviyeye göre dağılım bar grafiği ile gösterilir |
+| Arka plan analizi (GUI) | Dosya okuma ve ayrıştırma `QtConcurrent` worker thread'inde çalışır; pencere analiz sırasında yanıt vermeye devam eder ve yeni dosya seçimi eski işi güvenli biçimde iptal eder |
+| Sanal sonuç tablosu (GUI) | `QTableView` + `QAbstractTableModel` yalnızca görünür hücreleri üretir; büyük sonuç kümelerinde binlerce hücre widget'ı oluşturulmaz |
 | Son açılan dosyalar (GUI) | Son açılan dosyalar kalıcı olarak (`QSettings`) hatırlanır |
 | CSV / JSON dışa aktarma | Sonucu dosyaya yaz — her satırın kaynağı da (hangi dosyadan geldiği) dahil edilir |
 | Excel uyumlu CSV | Noktalı virgül ayracı + UTF-8 BOM, Türkçe karakterler Excel'de bozulmadan açılır |
@@ -62,7 +64,9 @@ LogAnalyzer/
     ├── cli/                    ── argüman katmanı ──
     │   └── CliOptions.h/.cpp   QCommandLineParser sarmalayıcısı
     └── ui/                     ── GUI katmanı (yalnızca LogAnalyzerGui) ──
-        ├── MainWindow.h/.cpp/.ui   ana pencere (tarih aralığı, çoklu dosya vb.)
+        ├── MainWindow.h/.cpp/.ui   ana pencere ve worker yaşam döngüsü
+        ├── LogAnalysisWorker.h/.cpp  arka planda okuma, parse ve filtreleme
+        ├── LogTableModel.h/.cpp    sanal sonuç tablosu modeli
         └── RecentFiles.h/.cpp      son açılan dosyalar listesi (QSettings ile kalıcı)
 ```
 
@@ -90,7 +94,7 @@ Qt Creator kullanıyorsan projeyi açman ve normal şekilde derlemen (Ctrl+B) ye
 
 1. **Dosya(lar) Seç** — Ctrl/Shift ile birden fazla log dosyası seçilebilir; ya da "Son Açılan Dosyalar" listesinden tek bir dosyaya tıklanabilir.
 2. Aranacak kelime/regex, parser pattern, zaman damgası formatı ve minimum seviye alanları CLI'deki `--search`/`--parser-pattern`/`--timestamp-format`/`--level` ile birebir aynı işi görür. Pattern kutusu **boş bırakılırsa** format otomatik algılanır (yukarıya bakın).
-3. **Tarih aralığı** kutucuğunu işaretleyip başlangıç/bitiş tarihlerini seçerek belirli bir zaman penceresine daraltabilirsin.
+3. **Tarih aralığı** kutucuğunu işaretleyip başlangıç/bitiş tarihlerini seçerek belirli bir zaman penceresine daraltabilirsin. Varsayılan olarak iki günün tamamı kapsanır. **Saat belirt** açılırsa `HH:mm` hassasiyetinde filtre uygulanır; bitiş dakikasının tamamı dahildir. **Son 15 dakika**, **Son 1 saat**, **Bugün** ve **Son 24 saat** hızlı seçimleri de kullanılabilir.
 4. **Ara** — seçilen tüm dosyalar sırayla okunur, aynı filtreden geçirilir; sonuç tablosunda her satırın hangi dosyadan geldiği "Kaynak" sütununda görünür, sağ tarafta seviyeye göre dağılım grafiği güncellenir.
 5. **Dışa Aktar** — `.csv` ya da `.json` uzantısına göre `CsvExporter`/`JsonExporter` seçilip son arama sonucu (kaynak bilgisiyle birlikte) dosyaya yazılır.
 
@@ -161,6 +165,6 @@ Dördünde de kod hiç değişmedi, hatta çoğunda elle pattern bile verilmedi 
 - Otomatik format kütüphanesi şu an iki stratejiden oluşuyor (`GenericHeuristicParser`, `SyslogParser`); ikisi de tanıyamazsa sonuç ekranında "Bilinmiyor (varsayılan kullanılıyor, sonuçlar hatalı olabilir)" diye açıkça belirtilir. JSON satır satır loglar (`{"timestamp":...}` tarzı) ve tamamen sıra dışı yapılar için hâlâ elle `--parser-pattern` gerekir.
 - `GenericHeuristicParser`, zaman damgasını satırın ilk 40, metadata kapanışını (`]`) ilk 100 karakterinde arar — bu, gerçek değeri mesajın derinlerinde geçen (çok uzun) satırlarda nadiren yanlış eşleşmeyi önlemek için bilinçli bir sınır.
 - Unit test framework'ü içermez.
-- Tek thread — paralel okuma/işleme yoktur. CLI zaten tek dosya işler; GUI'de çoklu dosyalar da sırayla (paralel değil) okunur.
+- CLI tek thread üzerinde çalışır. GUI analizi arka plan worker thread'ine taşır; aynı analize ait birden fazla dosya deterministik sonuç sırası için worker içinde sırayla okunur.
 - GUI'de çoklu dosya taramasında bir dosya açılamazsa, o ana kadar okunan diğer dosyaların sonuçları da gösterilmeden arama iptal olur.
 - gzip gibi sıkıştırılmış log dosyaları desteklenmez.
