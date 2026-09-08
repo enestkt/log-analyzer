@@ -35,6 +35,9 @@ struct GuiAnalysisResult
     bool cancelled = false;
     QString errorTitle;
     QString errorMessage;
+    // "dosyaAdi: FormatAdi" seklinde, sadece otomatik algilama kullanildiysa doldurulur
+    // (ozel pattern verilmisse bos kalir -- kullanici zaten formati kendi belirtmis olur).
+    QStringList detectedFormats;
 };
 
 class LogAnalysisWorker

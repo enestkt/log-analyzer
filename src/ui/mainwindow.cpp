@@ -588,6 +588,8 @@ void MainWindow::onAnalysisFinished()
         .arg(m_lastStats.unparsedLines);
     if (resultCount == 0 && result.dateRangeEnabled && m_lastStats.totalLines > 0)
         resultText += QStringLiteral(" · Seçilen tarih aralığında kayıt yok");
+    if (!result.detectedFormats.isEmpty())
+        resultText += QStringLiteral(" · Format: %1").arg(result.detectedFormats.join(QStringLiteral(", ")));
     ui->resultCountLabel->setText(resultText);
     updateChart();
 }

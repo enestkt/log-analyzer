@@ -59,6 +59,8 @@ GuiAnalysisResult LogAnalysisWorker::run(
                 : QDate::currentDate().year();
             QString detectedFormatName;
             parser = ParserLibrary::detect(sampleLines, referenceYear, detectedFormatName);
+            result.detectedFormats.append(QStringLiteral("%1: %2")
+                .arg(QFileInfo(filePath).fileName(), detectedFormatName));
         }
 
         FileLogReader reader;
