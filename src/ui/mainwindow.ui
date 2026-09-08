@@ -3,95 +3,532 @@
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
   <property name="geometry">
-   <rect><x>0</x><y>0</y><width>1280</width><height>820</height></rect>
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1280</width>
+    <height>820</height>
+   </rect>
   </property>
-  <property name="minimumSize"><size><width>900</width><height>640</height></size></property>
-  <property name="windowTitle"><string>LogAnalyzer</string></property>
+  <property name="minimumSize">
+   <size>
+    <width>900</width>
+    <height>640</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>LogAnalyzer</string>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="rootLayout">
-    <property name="spacing"><number>10</number></property>
-    <property name="leftMargin"><number>20</number></property>
-    <property name="topMargin"><number>12</number></property>
-    <property name="rightMargin"><number>20</number></property>
-    <property name="bottomMargin"><number>16</number></property>
+    <property name="spacing">
+     <number>10</number>
+    </property>
+    <property name="leftMargin">
+     <number>20</number>
+    </property>
+    <property name="topMargin">
+     <number>12</number>
+    </property>
+    <property name="rightMargin">
+     <number>20</number>
+    </property>
+    <property name="bottomMargin">
+     <number>16</number>
+    </property>
     <item>
      <widget class="QFrame" name="headerFrame">
-      <property name="maximumSize"><size><width>16777215</width><height>56</height></size></property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>56</height>
+       </size>
+      </property>
       <layout class="QHBoxLayout" name="headerLayout">
-       <property name="leftMargin"><number>2</number></property><property name="topMargin"><number>0</number></property><property name="rightMargin"><number>2</number></property><property name="bottomMargin"><number>0</number></property>
+       <property name="leftMargin">
+        <number>2</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>2</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
        <item>
         <layout class="QVBoxLayout" name="titleLayout">
-         <property name="spacing"><number>1</number></property>
-         <item><widget class="QLabel" name="appTitleLabel"><property name="text"><string>LogAnalyzer</string></property></widget></item>
-         <item><widget class="QLabel" name="appSubtitleLabel"><property name="text"><string>Log inceleme ve hata analizi</string></property></widget></item>
+         <property name="spacing">
+          <number>1</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="appTitleLabel">
+           <property name="text">
+            <string>LogAnalyzer</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="appSubtitleLabel">
+           <property name="text">
+            <string>Log inceleme ve hata analizi</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
-       <item><spacer name="headerSpacer"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint"><size><width>40</width><height>20</height></size></property></spacer></item>
-       <item><widget class="QLabel" name="statusPillLabel"><property name="maximumSize"><size><width>16777215</width><height>28</height></size></property><property name="text"><string>Hazır</string></property><property name="alignment"><set>Qt::AlignCenter</set></property></widget></item>
+       <item>
+        <spacer name="headerSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="statusPillLabel">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>28</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Hazır</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
     <item>
      <widget class="QFrame" name="sourceCard">
-      <property name="maximumSize"><size><width>16777215</width><height>78</height></size></property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>78</height>
+       </size>
+      </property>
       <layout class="QHBoxLayout" name="sourceLayout">
-       <property name="spacing"><number>12</number></property>
-       <property name="leftMargin"><number>16</number></property><property name="topMargin"><number>9</number></property><property name="rightMargin"><number>16</number></property><property name="bottomMargin"><number>9</number></property>
-       <item><widget class="QPushButton" name="openFileButton"><property name="minimumSize"><size><width>150</width><height>40</height></size></property><property name="cursor"><cursorShape>PointingHandCursor</cursorShape></property><property name="text"><string>Dosya Seç</string></property></widget></item>
-       <item><widget class="QLabel" name="filePathLabel"><property name="text"><string>Henüz dosya seçilmedi</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
-       <item><spacer name="sourceSpacer"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint"><size><width>30</width><height>20</height></size></property></spacer></item>
-       <item><widget class="QLabel" name="recentTitleLabel"><property name="text"><string>Son dosyalar</string></property></widget></item>
-       <item><widget class="QListWidget" name="recentFilesListWidget"><property name="minimumSize"><size><width>260</width><height>60</height></size></property><property name="maximumSize"><size><width>360</width><height>60</height></size></property><property name="horizontalScrollBarPolicy"><enum>Qt::ScrollBarAlwaysOff</enum></property></widget></item>
+       <property name="spacing">
+        <number>12</number>
+       </property>
+       <property name="leftMargin">
+        <number>16</number>
+       </property>
+       <property name="topMargin">
+        <number>9</number>
+       </property>
+       <property name="rightMargin">
+        <number>16</number>
+       </property>
+       <property name="bottomMargin">
+        <number>9</number>
+       </property>
+       <item>
+        <widget class="QPushButton" name="openFileButton">
+         <property name="minimumSize">
+          <size>
+           <width>150</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="cursor">
+          <cursorShape>PointingHandCursor</cursorShape>
+         </property>
+         <property name="text">
+          <string>Dosya Seç</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="filePathLabel">
+         <property name="text">
+          <string>Henüz dosya seçilmedi</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="sourceSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>30</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="recentTitleLabel">
+         <property name="text">
+          <string>Son dosyalar</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QListWidget" name="recentFilesListWidget">
+         <property name="minimumSize">
+          <size>
+           <width>260</width>
+           <height>60</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>360</width>
+           <height>60</height>
+          </size>
+         </property>
+         <property name="horizontalScrollBarPolicy">
+          <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
     <item>
      <widget class="QFrame" name="filtersCard">
-      <property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Maximum"><horstretch>0</horstretch><verstretch>0</verstretch></sizepolicy></property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <layout class="QVBoxLayout" name="filtersCardLayout">
-       <property name="spacing"><number>10</number></property>
-       <property name="leftMargin"><number>16</number></property><property name="topMargin"><number>13</number></property><property name="rightMargin"><number>16</number></property><property name="bottomMargin"><number>13</number></property>
+       <property name="spacing">
+        <number>10</number>
+       </property>
+       <property name="leftMargin">
+        <number>16</number>
+       </property>
+       <property name="topMargin">
+        <number>13</number>
+       </property>
+       <property name="rightMargin">
+        <number>16</number>
+       </property>
+       <property name="bottomMargin">
+        <number>13</number>
+       </property>
        <item>
         <layout class="QHBoxLayout" name="filterRowLayout">
-         <property name="spacing"><number>10</number></property>
-         <item><widget class="QLineEdit" name="searchLineEdit"><property name="minimumSize"><size><width>220</width><height>38</height></size></property><property name="clearButtonEnabled"><bool>true</bool></property><property name="placeholderText"><string>Mesaj içinde kelime veya regex ara</string></property></widget></item>
-         <item><widget class="QComboBox" name="levelComboBox"><property name="minimumSize"><size><width>120</width><height>38</height></size></property>
-          <item><property name="text"><string>Tümü</string></property></item>
-          <item><property name="text"><string>TRACE</string></property></item>
-          <item><property name="text"><string>DEBUG</string></property></item>
-          <item><property name="text"><string>INFO</string></property></item>
-          <item><property name="text"><string>WARNING</string></property></item>
-          <item><property name="text"><string>ERROR</string></property></item>
-          <item><property name="text"><string>CRITICAL</string></property></item>
-         </widget></item>
-         <item><spacer name="filterRowSpacer"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint"><size><width>20</width><height>20</height></size></property></spacer></item>
-         <item><widget class="QPushButton" name="searchButton"><property name="minimumSize"><size><width>130</width><height>40</height></size></property><property name="cursor"><cursorShape>PointingHandCursor</cursorShape></property><property name="text"><string>Analiz Et</string></property></widget></item>
-         <item><widget class="QPushButton" name="exportButton"><property name="minimumSize"><size><width>105</width><height>40</height></size></property><property name="cursor"><cursorShape>PointingHandCursor</cursorShape></property><property name="text"><string>Dışa Aktar</string></property></widget></item>
+         <property name="spacing">
+          <number>10</number>
+         </property>
+         <item>
+          <widget class="QLineEdit" name="searchLineEdit">
+           <property name="minimumSize">
+            <size>
+             <width>220</width>
+             <height>38</height>
+            </size>
+           </property>
+           <property name="placeholderText">
+            <string>Mesaj içinde kelime veya regex ara</string>
+           </property>
+           <property name="clearButtonEnabled">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="levelComboBox">
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>38</height>
+            </size>
+           </property>
+           <item>
+            <property name="text">
+             <string>Tümü</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>TRACE</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>DEBUG</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>INFO</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>WARNING</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>ERROR</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>CRITICAL</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item>
+          <spacer name="filterRowSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="searchButton">
+           <property name="minimumSize">
+            <size>
+             <width>130</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="cursor">
+            <cursorShape>PointingHandCursor</cursorShape>
+           </property>
+           <property name="text">
+            <string>Analiz Et</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="exportButton">
+           <property name="minimumSize">
+            <size>
+             <width>105</width>
+             <height>40</height>
+            </size>
+           </property>
+           <property name="cursor">
+            <cursorShape>PointingHandCursor</cursorShape>
+           </property>
+           <property name="text">
+            <string>Dışa Aktar</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
        <item>
-       <layout class="QHBoxLayout" name="dateRowLayout">
-         <property name="spacing"><number>10</number></property>
-         <item><widget class="QComboBox" name="quickRangeComboBox"><property name="minimumSize"><size><width>135</width><height>36</height></size></property><item><property name="text"><string>Hızlı seçim</string></property></item><item><property name="text"><string>Son 15 dakika</string></property></item><item><property name="text"><string>Son 1 saat</string></property></item><item><property name="text"><string>Bugün</string></property></item><item><property name="text"><string>Son 24 saat</string></property></item></widget></item>
-         <item><widget class="QCheckBox" name="dateRangeCheckBox"><property name="text"><string>Tarih aralığı</string></property></widget></item>
-         <item><widget class="QDateEdit" name="fromDateTimeEdit"><property name="enabled"><bool>false</bool></property><property name="minimumSize"><size><width>120</width><height>36</height></size></property><property name="calendarPopup"><bool>true</bool></property><property name="displayFormat"><string>dd.MM.yyyy</string></property></widget></item>
-         <item><widget class="QTimeEdit" name="fromTimeEdit"><property name="minimumSize"><size><width>72</width><height>36</height></size></property><property name="displayFormat"><string>HH:mm</string></property></widget></item>
-         <item><widget class="QLabel" name="dateRangeSeparatorLabel"><property name="text"><string>–</string></property><property name="alignment"><set>Qt::AlignCenter</set></property></widget></item>
-         <item><widget class="QDateEdit" name="toDateTimeEdit"><property name="enabled"><bool>false</bool></property><property name="minimumSize"><size><width>120</width><height>36</height></size></property><property name="calendarPopup"><bool>true</bool></property><property name="displayFormat"><string>dd.MM.yyyy</string></property></widget></item>
-         <item><widget class="QTimeEdit" name="toTimeEdit"><property name="minimumSize"><size><width>72</width><height>36</height></size></property><property name="displayFormat"><string>HH:mm</string></property></widget></item>
-         <item><widget class="QCheckBox" name="timePrecisionCheckBox"><property name="enabled"><bool>false</bool></property><property name="text"><string>Saat belirt</string></property></widget></item>
-         <item><spacer name="dateRowSpacer"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint"><size><width>20</width><height>20</height></size></property></spacer></item>
+        <layout class="QHBoxLayout" name="dateRowLayout">
+         <property name="spacing">
+          <number>10</number>
+         </property>
+         <item>
+          <widget class="QComboBox" name="quickRangeComboBox">
+           <property name="minimumSize">
+            <size>
+             <width>135</width>
+             <height>36</height>
+            </size>
+           </property>
+           <item>
+            <property name="text">
+             <string>Hızlı seçim</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Son 15 dakika</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Son 1 saat</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Bugün</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Son 24 saat</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="dateRangeCheckBox">
+           <property name="text">
+            <string>Tarih aralığı</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QDateEdit" name="fromDateTimeEdit">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>36</height>
+            </size>
+           </property>
+           <property name="displayFormat">
+            <string>dd.MM.yyyy</string>
+           </property>
+           <property name="calendarPopup">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTimeEdit" name="fromTimeEdit">
+           <property name="minimumSize">
+            <size>
+             <width>72</width>
+             <height>36</height>
+            </size>
+           </property>
+           <property name="displayFormat">
+            <string>HH:mm</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="dateRangeSeparatorLabel">
+           <property name="text">
+            <string>–</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QDateEdit" name="toDateTimeEdit">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>36</height>
+            </size>
+           </property>
+           <property name="displayFormat">
+            <string>dd.MM.yyyy</string>
+           </property>
+           <property name="calendarPopup">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTimeEdit" name="toTimeEdit">
+           <property name="minimumSize">
+            <size>
+             <width>72</width>
+             <height>36</height>
+            </size>
+           </property>
+           <property name="displayFormat">
+            <string>HH:mm</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="timePrecisionCheckBox">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Saat belirt</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="dateRowSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
         </layout>
        </item>
        <item>
         <widget class="QGroupBox" name="advancedGroupBox">
-         <property name="title"><string>Gelişmiş ayrıştırma ayarları</string></property>
-         <property name="checkable"><bool>true</bool></property>
-         <property name="checked"><bool>false</bool></property>
+         <property name="title">
+          <string>Gelişmiş ayrıştırma ayarları</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
          <layout class="QHBoxLayout" name="advancedLayout">
-          <property name="leftMargin"><number>10</number></property><property name="topMargin"><number>8</number></property><property name="rightMargin"><number>10</number></property><property name="bottomMargin"><number>8</number></property>
-          <item><widget class="QLineEdit" name="patternLineEdit"><property name="placeholderText"><string>Özel parser regex'i</string></property></widget></item>
-          <item><widget class="QLineEdit" name="timestampFormatLineEdit"><property name="maximumSize"><size><width>260</width><height>16777215</height></size></property><property name="placeholderText"><string>Zaman biçimi: yyyy-MM-dd HH:mm:ss</string></property></widget></item>
+          <property name="leftMargin">
+           <number>10</number>
+          </property>
+          <property name="topMargin">
+           <number>8</number>
+          </property>
+          <property name="rightMargin">
+           <number>10</number>
+          </property>
+          <property name="bottomMargin">
+           <number>8</number>
+          </property>
+          <item>
+           <widget class="QLineEdit" name="patternLineEdit">
+            <property name="placeholderText">
+             <string>Özel parser regex'i</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="timestampFormatLineEdit">
+            <property name="maximumSize">
+             <size>
+              <width>260</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="placeholderText">
+             <string>Zaman biçimi: yyyy-MM-dd HH:mm:ss</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>
@@ -100,37 +537,103 @@
     </item>
     <item>
      <widget class="QSplitter" name="mainSplitter">
-      <property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Expanding"><horstretch>0</horstretch><verstretch>1</verstretch></sizepolicy></property>
-      <property name="orientation"><enum>Qt::Horizontal</enum></property>
-      <property name="childrenCollapsible"><bool>false</bool></property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>1</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Orientation::Horizontal</enum>
+      </property>
+      <property name="childrenCollapsible">
+       <bool>false</bool>
+      </property>
       <widget class="QGroupBox" name="resultsGroupBox">
-       <property name="title"><string>Sonuçlar</string></property>
+       <property name="title">
+        <string>Sonuçlar</string>
+       </property>
        <layout class="QVBoxLayout" name="resultsGroupLayout">
-        <property name="spacing"><number>8</number></property>
-        <item><widget class="QLabel" name="resultCountLabel"><property name="text"><string>Analiz çalıştırılmadı</string></property></widget></item>
-        <item><widget class="QTableView" name="resultTableView">
-         <property name="editTriggers"><set>QAbstractItemView::NoEditTriggers</set></property>
-         <property name="selectionBehavior"><enum>QAbstractItemView::SelectRows</enum></property>
-         <property name="showGrid"><bool>false</bool></property>
-         <property name="sortingEnabled"><bool>true</bool></property>
-         <property name="alternatingRowColors"><bool>true</bool></property>
-        </widget></item>
+        <property name="spacing">
+         <number>8</number>
+        </property>
+        <item>
+         <widget class="QLabel" name="resultCountLabel">
+          <property name="text">
+           <string>Analiz çalıştırılmadı</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTableView" name="resultTableView">
+          <property name="editTriggers">
+           <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+          </property>
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+          </property>
+          <property name="showGrid">
+           <bool>false</bool>
+          </property>
+          <property name="sortingEnabled">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="chartCard" native="true">
-       <property name="minimumSize"><size><width>440</width><height>0</height></size></property>
+       <property name="minimumSize">
+        <size>
+         <width>440</width>
+         <height>0</height>
+        </size>
+       </property>
        <layout class="QVBoxLayout" name="chartCardLayout">
-        <property name="spacing"><number>8</number></property>
-        <property name="leftMargin"><number>14</number></property><property name="topMargin"><number>14</number></property><property name="rightMargin"><number>14</number></property><property name="bottomMargin"><number>14</number></property>
-        <item><widget class="QLabel" name="chartTitleLabel"><property name="text"><string>Seviye dağılımı</string></property></widget></item>
-        <item><widget class="QWidget" name="chartContainer" native="true"/></item>
+        <property name="spacing">
+         <number>8</number>
+        </property>
+        <property name="leftMargin">
+         <number>14</number>
+        </property>
+        <property name="topMargin">
+         <number>14</number>
+        </property>
+        <property name="rightMargin">
+         <number>14</number>
+        </property>
+        <property name="bottomMargin">
+         <number>14</number>
+        </property>
+        <item>
+         <widget class="QLabel" name="chartTitleLabel">
+          <property name="text">
+           <string>Seviye dağılımı</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QWidget" name="chartContainer" native="true"/>
+        </item>
        </layout>
       </widget>
      </widget>
     </item>
    </layout>
   </widget>
-  <widget class="QMenuBar" name="menubar"><property name="geometry"><rect><x>0</x><y>0</y><width>1280</width><height>24</height></rect></property></widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1280</width>
+     <height>25</height>
+    </rect>
+   </property>
+  </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
