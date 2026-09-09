@@ -11,11 +11,12 @@
 // secer. Yeni bir format eklemek istersen, yeni bir ILogParser somut sinifi
 // yazip bu dosyadaki listeye eklemen yeterli.
 //
-// referenceYear: yil bilgisi tasimayan formatlar (syslog gibi) icin kullanilacak
-// varsayilan yil -- caginan taraf genelde dosyanin son degistirilme yilini verir.
+// referenceYear: yil bilgisi tasimayan formatlar (syslog gibi) icin dosyadaki
+// ilk kaydin yili. Bu deger dosya sistemi tarihinden tahmin edilmemelidir.
 namespace ParserLibrary {
 
 std::unique_ptr<ILogParser> detect(const QStringList &sampleLines, int referenceYear,
-                                   QString &detectedFormatName);
+                                   QString &detectedFormatName,
+                                   bool *usesReferenceYear = nullptr);
 
 } // namespace ParserLibrary

@@ -22,19 +22,24 @@ int scoreParser(const ILogParser &parser, const QStringList &sampleLines)
 namespace ParserLibrary {
 
 std::unique_ptr<ILogParser> detect(const QStringList &sampleLines, int referenceYear,
-                                   QString &detectedFormatName)
+                                   QString &detectedFormatName, bool *usesReferenceYear)
 {
     auto generic = std::make_unique<GenericHeuristicParser>();
-    auto syslog = std::make_unique<SyslogParser>(referenceYear);
+    auto syslogForScoring = std::make_unique<SyslogParser>(referenceYear);
 
     const int genericScore = scoreParser(*generic, sampleLines);
-    const int syslogScore = scoreParser(*syslog, sampleLines);
+    const int syslogScore = scoreParser(*syslogForScoring, sampleLines);
+
+    if (usesReferenceYear)
+        *usesReferenceYear = syslogScore > genericScore;
 
     // Esitlik/hicbir sey eslesmeme durumunda genel (heuristic) parser'a duselim --
     // en genis kapsamli secenek o oldugu icin daha guvenli bir varsayilan.
     if (syslogScore > genericScore) {
         detectedFormatName = QStringLiteral("Syslog");
-        return syslog;
+        // Skorlama sirasinda parser'in yil-gecis durumu degisti. Gercek okuma
+        // her zaman dosyanin basindan ve temiz bir parser ile baslamalidir.
+        return std::make_unique<SyslogParser>(referenceYear);
     }
 
     // genericScore de 0 ise, aslinda HICBIR strateji bu formati tanimadi --

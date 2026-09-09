@@ -407,6 +407,18 @@ void MainWindow::cancelActiveAnalysis()
         m_cancelRequested->store(true, std::memory_order_relaxed);
 }
 
+void MainWindow::clearResultsForNewSelection()
+{
+    // Secim degistigi anda eski dosyanin tablosunu gostermeye devam etmek,
+    // sonuclari yeni secilen dosyaya aitmis gibi gosterir. Yeni analiz baslamadan
+    // once gorunen tum turetilmis veriyi temizle.
+    m_tableModel->clear();
+    m_lastStats = {};
+    updateChart();
+    ui->exportButton->setEnabled(false);
+    ui->resultCountLabel->setText(QStringLiteral("Yeni dosya seçildi · Analiz etmeye hazır"));
+}
+
 void MainWindow::onOpenFileClicked()
 {
     const QStringList paths = QFileDialog::getOpenFileNames(
@@ -418,6 +430,7 @@ void MainWindow::onOpenFileClicked()
     cancelActiveAnalysis();
     ++m_selectionRevision;
     m_filePaths = paths;
+    clearResultsForNewSelection();
     ui->filePathLabel->setText(paths.size() == 1
         ? paths.first()
         : QStringLiteral("%1 dosya seçildi").arg(paths.size()));
@@ -439,6 +452,7 @@ void MainWindow::onRecentFileClicked(QListWidgetItem *item)
     cancelActiveAnalysis();
     ++m_selectionRevision;
     m_filePaths = {path};
+    clearResultsForNewSelection();
     ui->filePathLabel->setText(path);
     ui->statusPillLabel->setText(m_analysisWatcher->isRunning()
         ? QStringLiteral("Eski analiz iptal ediliyor")
@@ -495,12 +509,12 @@ void MainWindow::onSearchClicked()
     request.dateRangeEnabled = ui->dateRangeCheckBox->isChecked();
     request.fromDateTime = fromDateTime;
     request.toDateTime = toDateTime;
+    request.customParserEnabled = !ui->patternLineEdit->text().isEmpty();
 
     const QString levelText = ui->levelComboBox->currentText();
     if (levelText != QStringLiteral("Tümü"))
         request.minimumLevel = logLevelFromString(levelText);
 
-    request.customParserEnabled = !ui->patternLineEdit->text().isEmpty();
     if (request.customParserEnabled) {
         request.customParserPattern = QRegularExpression(ui->patternLineEdit->text());
         request.customTimestampFormat = ui->timestampFormatLineEdit->text().isEmpty()

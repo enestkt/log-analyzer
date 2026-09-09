@@ -31,7 +31,7 @@ int monthFromName(const QString &name)
 } // namespace
 
 SyslogParser::SyslogParser(int referenceYear)
-    : m_referenceYear(referenceYear)
+    : m_currentYear(referenceYear)
 {
 }
 
@@ -49,11 +49,17 @@ bool SyslogParser::parseLine(const QString &line, LogEntry &out) const
     const int day = match.captured(QStringLiteral("day")).toInt();
     const QString timeText = match.captured(QStringLiteral("time"));
 
-    // Syslog satirlarinda yil hic yazilmaz -- constructor'da verilen referans yil
-    // kullanilir (composition root, dosyanin son degistirilme yilini verebiliyor,
-    // vermezse icinde bulunulan yil kullanilir). Yine de tahmindir; ornegin dosyada
-    // yil sinirini asan (Aralik -> Ocak) kayitlar olursa hala yanilabilir.
-    const int year = m_referenceYear;
+    // Klasik syslog yili tasimaz. Constructor'a dosyadaki ilk kaydin gercek yili
+    // verilir; kronolojik kayitlarda ay birden geriye sicradiginda (Aralik -> Ocak,
+    // ya da Aralik kaydi olmayan seyrek dosyalarda Kasim -> Ocak gibi) yil donmustur.
+    // "En az 6 ay geriye" esigi, syslog'da sik gorulen kucuk sira bozukluklarinin
+    // (orn. Temmuz -> Haziran) yanlislikla yeni yil sayilmasini onler. Ayni kural
+    // SyslogYearDetector icinde de kullanilir -- ikisi birbiriyle tutarli olmali.
+    if (m_previousMonth > 0 && m_previousMonth - month >= 6)
+        ++m_currentYear;
+    m_previousMonth = month;
+
+    const int year = m_currentYear;
     const QDateTime timestamp = QDateTime::fromString(
         QStringLiteral("%1-%2-%3 %4")
             .arg(year)

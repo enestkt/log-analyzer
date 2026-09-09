@@ -42,6 +42,7 @@ private:
     void refreshRecentFilesList();
     void applyStyle();
     void cancelActiveAnalysis();
+    void clearResultsForNewSelection();
     void updateChart();
 
     Ui::MainWindow *ui;

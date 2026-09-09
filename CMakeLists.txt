@@ -22,6 +22,8 @@ set(CORE_SOURCES
     src/core/GenericHeuristicParser.cpp
     src/core/SyslogParser.h
     src/core/SyslogParser.cpp
+    src/core/SyslogYearDetector.h
+    src/core/SyslogYearDetector.cpp
     src/core/ParserLibrary.h
     src/core/ParserLibrary.cpp
     src/core/ILogReader.h
@@ -94,6 +96,19 @@ if(BUILD_TESTING)
         COMMAND ${CMAKE_COMMAND} -E env
             "PATH=$<TARGET_FILE_DIR:Qt6::Core>;${CXX_RUNTIME_DIR};$ENV{PATH}"
             "$<TARGET_FILE:LogFilterDateRangeTest>")
+
+    qt_add_executable(SyslogYearTest
+        tests/SyslogYearTest.cpp
+        ${CORE_SOURCES}
+        src/ui/LogAnalysisWorker.h
+        src/ui/LogAnalysisWorker.cpp
+    )
+    target_include_directories(SyslogYearTest PRIVATE src)
+    target_link_libraries(SyslogYearTest PRIVATE Qt::Core)
+    add_test(NAME SyslogYearTest
+        COMMAND ${CMAKE_COMMAND} -E env
+            "PATH=$<TARGET_FILE_DIR:Qt6::Core>;${CXX_RUNTIME_DIR};$ENV{PATH}"
+            "$<TARGET_FILE:SyslogYearTest>")
 
     qt_add_executable(GuiResponsivenessTest
         tests/GuiResponsivenessTest.cpp

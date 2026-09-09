@@ -15,6 +15,7 @@
 #include "core/ILogParser.h"
 #include "core/ParserLibrary.h"
 #include "core/RegexLogParser.h"
+#include "core/SyslogYearDetector.h"
 #include "export/CsvExporter.h"
 #include "export/IExporter.h"
 #include "export/JsonExporter.h"
@@ -36,6 +37,24 @@ void printSummary(const LogStatsResult &stats, QTextStream &out)
     out << "\nSaatlik dagilim:\n";
     for (auto it = stats.countsByHourBucket.constBegin(); it != stats.countsByHourBucket.constEnd(); ++it)
         out << "  " << it.key() << ": " << it.value() << '\n';
+}
+
+int inferSyslogYear(const QString &path)
+{
+    const int fileNameYear = syslogYearFromFileName(path);
+    if (fileNameYear > 0)
+        return fileNameYear;
+
+    FileLogReader reader;
+    QString error;
+    if (!reader.open(path, error))
+        return 0;
+
+    SyslogYearDetector detector;
+    while (!reader.atEnd())
+        detector.inspectLine(reader.readLine());
+    reader.close();
+    return detector.inferredFirstYear();
 }
 
 } // namespace
@@ -77,10 +96,34 @@ int main(int argc, char *argv[])
                 sampleLines.append(sampleReader.readLine());
             sampleReader.close();
         }
-        const QDateTime modified = QFileInfo(options.filePath()).lastModified();
-        const int referenceYear = modified.isValid() ? modified.date().year() : QDate::currentDate().year();
         QString detectedFormatName;
-        parser = ParserLibrary::detect(sampleLines, referenceYear, detectedFormatName);
+        bool usesReferenceYear = false;
+        parser = ParserLibrary::detect(sampleLines, QDate::currentDate().year(),
+                                       detectedFormatName,
+                                       &usesReferenceYear);
+        if (usesReferenceYear) {
+            int referenceYear = options.syslogYear();
+            QString yearNote = QStringLiteral("elle belirtildi");
+
+            if (referenceYear == 0) {
+                referenceYear = inferSyslogYear(options.filePath());
+                yearNote = QStringLiteral("otomatik");
+            }
+            if (referenceYear == 0) {
+                // Ne icerikte tam tarih capasi var ne de dosya adinda yil. Son care
+                // olarak dosyanin degistirilme yilini kullan -- ay/gun/saat dosyadan
+                // dogru geliyor, yalnizca yil tahmin. Kullaniciya acikca soyluyoruz.
+                const QDateTime modified = QFileInfo(options.filePath()).lastModified();
+                referenceYear = modified.isValid()
+                    ? modified.date().year()
+                    : QDate::currentDate().year();
+                yearNote = QStringLiteral("dosya tarihinden, TAHMINI");
+            }
+
+            parser = ParserLibrary::detect(sampleLines, referenceYear, detectedFormatName);
+            detectedFormatName += QStringLiteral(" (baslangic yili: %1 - %2)")
+                .arg(referenceYear).arg(yearNote);
+        }
         cout << "Algilanan log formati: " << detectedFormatName << "\n";
     }
 

@@ -23,6 +23,7 @@ public:
 
     QRegularExpression parserPattern() const { return m_parserPattern; }
     QString timestampFormat() const { return m_timestampFormat; }
+    int syslogYear() const { return m_syslogYear; }
 
     QRegularExpression searchPattern() const { return m_searchPattern; }
 
@@ -41,6 +42,7 @@ private:
     QRegularExpression m_parserPattern;
     bool m_parserPatternExplicitlySet = false;
     QString m_timestampFormat;
+    int m_syslogYear = 0;
     QRegularExpression m_searchPattern;
     QString m_exportFormat;
     QString m_outputPath;

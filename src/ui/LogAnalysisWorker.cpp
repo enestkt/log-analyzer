@@ -10,6 +10,41 @@
 #include "../core/LogFilter.h"
 #include "../core/ParserLibrary.h"
 #include "../core/RegexLogParser.h"
+#include "../core/SyslogYearDetector.h"
+
+namespace {
+
+int inferSyslogYear(const QString &filePath,
+                    const std::shared_ptr<std::atomic_bool> &cancelRequested,
+                    bool &cancelled)
+{
+    const int fileNameYear = syslogYearFromFileName(filePath);
+    if (fileNameYear > 0)
+        return fileNameYear;
+
+    FileLogReader reader;
+    QString error;
+    if (!reader.open(filePath, error))
+        return 0;
+
+    SyslogYearDetector detector;
+    qsizetype linesSinceCancelCheck = 0;
+    while (!reader.atEnd()) {
+        detector.inspectLine(reader.readLine());
+        if (++linesSinceCancelCheck >= 256) {
+            linesSinceCancelCheck = 0;
+            if (cancelRequested->load(std::memory_order_relaxed)) {
+                cancelled = true;
+                reader.close();
+                return 0;
+            }
+        }
+    }
+    reader.close();
+    return detector.inferredFirstYear();
+}
+
+} // namespace
 
 GuiAnalysisResult LogAnalysisWorker::run(
     GuiAnalysisRequest request, const std::shared_ptr<std::atomic_bool> &cancelRequested)
@@ -53,12 +88,35 @@ GuiAnalysisResult LogAnalysisWorker::run(
                 sampleReader.close();
             }
 
-            const QDateTime modified = QFileInfo(filePath).lastModified();
-            const int referenceYear = modified.isValid()
-                ? modified.date().year()
-                : QDate::currentDate().year();
             QString detectedFormatName;
-            parser = ParserLibrary::detect(sampleLines, referenceYear, detectedFormatName);
+            bool usesReferenceYear = false;
+            parser = ParserLibrary::detect(sampleLines, QDate::currentDate().year(),
+                                           detectedFormatName,
+                                           &usesReferenceYear);
+            if (usesReferenceYear) {
+                bool cancelledDuringDetection = false;
+                int referenceYear = inferSyslogYear(
+                    filePath, cancelRequested, cancelledDuringDetection);
+                if (cancelledDuringDetection) {
+                    result.cancelled = true;
+                    return result;
+                }
+                QString yearNote = QStringLiteral("otomatik");
+                if (referenceYear == 0) {
+                    // Icerikte tam tarih capasi yok, dosya adinda yil yok. Son care:
+                    // dosyanin degistirilme yili. Ay/gun/saat dosyadan dogru geliyor,
+                    // yalnizca yil tahmin -- sonuc satirinda "TAHMINI" olarak gorunur.
+                    const QDateTime modified = QFileInfo(filePath).lastModified();
+                    referenceYear = modified.isValid()
+                                        ? modified.date().year()
+                                        : QDate::currentDate().year();
+                    yearNote = QStringLiteral("dosya tarihinden, TAHMINI");
+                }
+                parser = ParserLibrary::detect(sampleLines, referenceYear,
+                                               detectedFormatName);
+                detectedFormatName += QStringLiteral(" (başlangıç yılı: %1 - %2)")
+                    .arg(referenceYear).arg(yearNote);
+            }
             result.detectedFormats.append(QStringLiteral("%1: %2")
                 .arg(QFileInfo(filePath).fileName(), detectedFormatName));
         }

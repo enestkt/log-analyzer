@@ -123,6 +123,17 @@ int main(int argc, char *argv[])
     if (!results->model() || results->model()->rowCount() != 12050)
         return 7;
 
+    // Baska dosya secildiginde onceki dosyanin sonuclari yeni dosyaya aitmis
+    // gibi ekranda kalmamali; yeni analizden once tablo hemen temizlenmeli.
+    auto *replacementItem = new QListWidgetItem(QStringLiteral("replacement.log"), recentFiles);
+    replacementItem->setData(Qt::UserRole, logPath);
+    if (!QMetaObject::invokeMethod(&window, "onRecentFileClicked", Qt::DirectConnection,
+                                   Q_ARG(QListWidgetItem *, replacementItem)))
+        return 20;
+    QCoreApplication::processEvents();
+    if (results->model()->rowCount() != 0)
+        return 21;
+
     MainWindow cancelWindow;
     auto *cancelList = cancelWindow.findChild<QListWidget *>(QStringLiteral("recentFilesListWidget"));
     auto *cancelResults = cancelWindow.findChild<QTableView *>(QStringLiteral("resultTableView"));

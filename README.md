@@ -20,6 +20,7 @@ Büyük log dosyalarını (cihaz logları, uygulama logları) satır satır okuy
 | Arka plan analizi (GUI) | Dosya okuma ve ayrıştırma `QtConcurrent` worker thread'inde çalışır; pencere analiz sırasında yanıt vermeye devam eder ve yeni dosya seçimi eski işi güvenli biçimde iptal eder |
 | Sanal sonuç tablosu (GUI) | `QTableView` + `QAbstractTableModel` yalnızca görünür hücreleri üretir; büyük sonuç kümelerinde binlerce hücre widget'ı oluşturulmaz |
 | Son açılan dosyalar (GUI) | Son açılan dosyalar kalıcı olarak (`QSettings`) hatırlanır |
+| Yılsız Syslog desteği | Klasik Syslog satırında yıl yoksa önce dosya içindeki eşleşen tam tarih çapalarından ve dosya adındaki yıldan başlangıç yılı otomatik çıkarılır. Bunlar da yoksa son çare olarak dosyanın değiştirilme yılı kullanılır ve sonuç satırında **"TAHMİNİ"** olarak işaretlenir; `--syslog-year` ile her zaman elle geçersiz kılınabilir |
 | CSV / JSON dışa aktarma | Sonucu dosyaya yaz — her satırın kaynağı da (hangi dosyadan geldiği) dahil edilir |
 | Excel uyumlu CSV | Noktalı virgül ayracı + UTF-8 BOM, Türkçe karakterler Excel'de bozulmadan açılır |
 | Otomatik özet | Toplam/parse edilen/filtreyi geçen satır sayısı, seviyeye ve saate göre dağılım |
@@ -96,6 +97,7 @@ Qt Creator kullanıyorsan projeyi açman ve normal şekilde derlemen (Ctrl+B) ye
 2. Aranacak kelime/regex, parser pattern, zaman damgası formatı ve minimum seviye alanları CLI'deki `--search`/`--parser-pattern`/`--timestamp-format`/`--level` ile birebir aynı işi görür. Pattern kutusu **boş bırakılırsa** format otomatik algılanır (yukarıya bakın).
 3. **Tarih aralığı** kutucuğunu işaretleyip başlangıç/bitiş tarihlerini seçerek belirli bir zaman penceresine daraltabilirsin. Varsayılan olarak iki günün tamamı kapsanır. **Saat belirt** açılırsa `HH:mm` hassasiyetinde filtre uygulanır; bitiş dakikasının tamamı dahildir. **Son 15 dakika**, **Son 1 saat**, **Bugün** ve **Son 24 saat** hızlı seçimleri de kullanılabilir.
 4. **Ara** — seçilen tüm dosyalar sırayla okunur, aynı filtreden geçirilir; sonuç tablosunda her satırın hangi dosyadan geldiği "Kaynak" sütununda görünür, sağ tarafta seviyeye göre dağılım grafiği güncellenir.
+   Klasik Syslog biçiminde başlıkta yıl bulunmadığında uygulama, mesajlarda aynı ay/gün/saatle tekrarlanan tam tarihleri güvenilir çapa kabul ederek başlangıç yılını otomatik çıkarır. Kronolojik kayıtlarda Aralık'tan Ocak'a geçiş yeni yıl olarak işlenir. Ne içerikte çapa ne de dosya adında yıl varsa, son çare olarak dosyanın değiştirilme yılı kullanılır ve format adının yanında "TAHMİNİ" ibaresi gösterilir — ay/gün/saat yine dosyadan birebir alınır, yalnızca yıl tahmindir.
 5. **Dışa Aktar** — `.csv` ya da `.json` uzantısına göre `CsvExporter`/`JsonExporter` seçilip son arama sonucu (kaynak bilgisiyle birlikte) dosyaya yazılır.
 
 ## Kullanım — CLI (`LogAnalyzer`)
@@ -113,6 +115,7 @@ LogAnalyzer --file <yol> [seçenekler]
 | `--search <regex>` | Hayır | Mesaj içinde aranacak regex; düz kelimelerde yazım hatasına tolerans vardır |
 | `--parser-pattern <regex>` | Hayır | Log formatını elle sabitler — verilmezse format otomatik algılanır. Verilirse `timestamp`/`level`/`message` adında yakalama grupları içermeli |
 | `--timestamp-format <format>` | Hayır | `--parser-pattern` ile birlikte kullanılır, Qt tarih format string'i |
+| `--syslog-year <yıl>` | Hayır | Klasik Syslog dosyasındaki ilk kaydın yılını elle sabitler; otomatik çıkarımı ve dosya tarihi tahminini geçersiz kılar |
 | `--export <csv\|json>` | Hayır* | Dışa aktarma formatı |
 | `--output <yol>` | Hayır* | Dışa aktarma dosyası yolu |
 
@@ -123,6 +126,9 @@ LogAnalyzer --file <yol> [seçenekler]
 ```bash
 # Format elle belirtilmedi -- otomatik algilanir, ozet ekranda "Algilanan log formati: ..." olarak gorunur
 LogAnalyzer --file uygulama.log
+
+# Otomatik yil cikarimi olmayan bir Syslog dosyasinda istege bagli yil override'i
+LogAnalyzer --file auth.log --syslog-year 2007
 
 # Sadece WARNING ve üstünü CSV'ye aktar
 LogAnalyzer --file uygulama.log --level WARNING --export csv --output ozet.csv

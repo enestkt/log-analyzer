@@ -26,6 +26,9 @@ bool CliOptions::parse(const QCoreApplication &app, QString &error)
     const QCommandLineOption timestampFormatOption(QStringList{ "timestamp-format" },
                                                    QStringLiteral("Log icindeki zaman damgasi formati (Qt format stringi)."), QStringLiteral("format"),
                                                    RegexLogParser::defaultTimestampFormat());
+    const QCommandLineOption syslogYearOption(QStringList{ "syslog-year" },
+                                              QStringLiteral("Yil icermeyen Syslog dosyasindaki ilk kaydin yili."),
+                                              QStringLiteral("year"));
     const QCommandLineOption searchOption(QStringList{ "search" },
                                           QStringLiteral("Mesaj icinde aranacak regex."), QStringLiteral("regex"));
     const QCommandLineOption exportOption(QStringList{ "export" },
@@ -39,6 +42,7 @@ bool CliOptions::parse(const QCoreApplication &app, QString &error)
     parser.addOption(levelOption);
     parser.addOption(parserPatternOption);
     parser.addOption(timestampFormatOption);
+    parser.addOption(syslogYearOption);
     parser.addOption(searchOption);
     parser.addOption(exportOption);
     parser.addOption(outputOption);
@@ -96,6 +100,15 @@ bool CliOptions::parse(const QCoreApplication &app, QString &error)
     }
 
     m_timestampFormat = parser.value(timestampFormatOption);
+
+    if (parser.isSet(syslogYearOption)) {
+        bool validYear = false;
+        m_syslogYear = parser.value(syslogYearOption).toInt(&validYear);
+        if (!validYear || m_syslogYear < 1000 || m_syslogYear > 9999) {
+            error = QStringLiteral("--syslog-year 1000 ile 9999 arasinda bir yil olmali.");
+            return false;
+        }
+    }
 
     if (parser.isSet(searchOption)) {
         m_searchPattern = QRegularExpression(parser.value(searchOption));
