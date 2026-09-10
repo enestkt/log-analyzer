@@ -115,7 +115,7 @@
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>78</height>
+        <height>108</height>
        </size>
       </property>
       <layout class="QHBoxLayout" name="sourceLayout">
@@ -184,14 +184,14 @@
         <widget class="QListWidget" name="recentFilesListWidget">
          <property name="minimumSize">
           <size>
-           <width>260</width>
-           <height>60</height>
+           <width>300</width>
+           <height>90</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>360</width>
-           <height>60</height>
+           <width>420</width>
+           <height>90</height>
           </size>
          </property>
          <property name="horizontalScrollBarPolicy">

@@ -24,6 +24,7 @@
 #include <QMessageBox>
 #include <QRegularExpression>
 #include <QScreen>
+#include <QScrollBar>
 #include <QStackedBarSeries>
 #include <QTableView>
 #include <QTimeEdit>
@@ -97,6 +98,12 @@ MainWindow::MainWindow(QWidget *parent)
         LogTableModel::MessageColumn, QHeaderView::Stretch);
     ui->resultTableView->horizontalHeader()->setSectionResizeMode(
         LogTableModel::SourceColumn, QHeaderView::ResizeToContents);
+
+    // Son dosyalar listesi: tekerlek varsayilan olarak 3 satir birden atlar,
+    // 5 elemanlik listede bu "zipla" gibi hissettirir. Piksel bazli kaydirma +
+    // kucuk adim ile tekerlek cevirdikce yavas yavas iner.
+    ui->recentFilesListWidget->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    ui->recentFilesListWidget->verticalScrollBar()->setSingleStep(6);
 
     m_recentFiles = new RecentFiles(this);
     refreshRecentFilesList();
