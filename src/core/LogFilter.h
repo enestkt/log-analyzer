@@ -2,7 +2,9 @@
 
 #include <QDate>
 #include <QDateTime>
+#include <QPair>
 #include <QRegularExpression>
+#include <QVector>
 
 #include "LogLevel.h"
 
@@ -26,6 +28,13 @@ public:
     void setSearchPattern(const QRegularExpression &pattern);
 
     bool matches(const LogEntry &entry) const;
+
+    // Arama deseninin mesaj icinde eslestigi (baslangic, uzunluk) araliklarini
+    // dondurur. GUI, eslesen kismi renklendirmek icin kullanir. Eslesme mantigi
+    // matches() ile birebir aynidir: regex gorunumlu desen regex olarak calisir,
+    // duz kelimede yazim hatasi toleransi (Levenshtein) uygulanir.
+    static QVector<QPair<qsizetype, qsizetype>> highlightSpans(
+        const QString &message, const QRegularExpression &searchPattern);
 
 private:
     QDateTime m_from;

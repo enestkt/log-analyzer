@@ -4,6 +4,7 @@
 #include <QStringList>
 #include <QVector>
 #include <algorithm>
+#include <utility>
 
 namespace {
 
@@ -136,4 +137,69 @@ bool LogFilter::matches(const LogEntry &entry) const
         }
     }
     return true;
+}
+
+QVector<QPair<qsizetype, qsizetype>> LogFilter::highlightSpans(
+    const QString &message, const QRegularExpression &searchPattern)
+{
+    QVector<QPair<qsizetype, qsizetype>> spans;
+    if (!searchPattern.isValid() || searchPattern.pattern().isEmpty())
+        return spans;
+
+    const QString rawSearchText = searchPattern.pattern();
+    if (looksLikeRegex(rawSearchText)) {
+        // Regex modu: desenin mesajda eslestigi her parcayi isaretle.
+        QRegularExpressionMatchIterator it = searchPattern.globalMatch(message);
+        while (it.hasNext()) {
+            const QRegularExpressionMatch match = it.next();
+            if (match.capturedLength(0) > 0)
+                spans.append({ match.capturedStart(0), match.capturedLength(0) });
+        }
+    } else {
+        // Duz kelime modu: fuzzyContains ile ayni mantik, ama kelimelerin
+        // mesaj icindeki KONUMLARINA da ihtiyacimiz oldugu icin split yerine
+        // globalMatch ile geziyoruz.
+        const QStringList terms = rawSearchText.split(
+            QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+        static const QRegularExpression wordPattern(
+            QStringLiteral("\\w+"), QRegularExpression::UseUnicodePropertiesOption);
+        QRegularExpressionMatchIterator words = wordPattern.globalMatch(message);
+        while (words.hasNext()) {
+            const QRegularExpressionMatch wordMatch = words.next();
+            const QString word = wordMatch.captured(0);
+            for (const QString &term : terms) {
+                // Alt-dize eslesmesi: sadece aranan parcayi boya ("info" ->
+                // "information" kelimesinin ilk 4 harfi).
+                const qsizetype inWord = word.indexOf(term, 0, Qt::CaseInsensitive);
+                if (inWord >= 0) {
+                    spans.append({ wordMatch.capturedStart(0) + inWord,
+                                   qsizetype(term.size()) });
+                    break;
+                }
+                // Yazim hatasi toleransi: kelimenin tamamini boya.
+                if (levenshteinDistance(word.toLower(), term.toLower())
+                        <= fuzzyThreshold(term.length())) {
+                    spans.append({ wordMatch.capturedStart(0),
+                                   qsizetype(word.size()) });
+                    break;
+                }
+            }
+        }
+    }
+
+    // Ust uste binen/ic ice gecen araliklari birlestir -- boyama kodu sirali
+    // ve ayrik araliklar bekler.
+    std::sort(spans.begin(), spans.end());
+    QVector<QPair<qsizetype, qsizetype>> merged;
+    for (const auto &span : std::as_const(spans)) {
+        if (!merged.isEmpty()
+            && span.first <= merged.last().first + merged.last().second) {
+            const qsizetype end = qMax(merged.last().first + merged.last().second,
+                                       span.first + span.second);
+            merged.last().second = end - merged.last().first;
+        } else {
+            merged.append(span);
+        }
+    }
+    return merged;
 }

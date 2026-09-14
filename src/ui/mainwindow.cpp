@@ -40,6 +40,7 @@
 #include "../export/CsvExporter.h"
 #include "../export/IExporter.h"
 #include "../export/JsonExporter.h"
+#include "HighlightDelegate.h"
 #include "LogAnalysisWorker.h"
 #include "LogTableModel.h"
 #include "RecentFiles.h"
@@ -68,6 +69,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_chart(nullptr)
     , m_chartView(nullptr)
     , m_tableModel(nullptr)
+    , m_highlightDelegate(nullptr)
     , m_analysisWatcher(nullptr)
 {
     ui->setupUi(this);
@@ -98,6 +100,11 @@ MainWindow::MainWindow(QWidget *parent)
         LogTableModel::MessageColumn, QHeaderView::Stretch);
     ui->resultTableView->horizontalHeader()->setSectionResizeMode(
         LogTableModel::SourceColumn, QHeaderView::ResizeToContents);
+
+    // Mesaj sutununda, aranan kelime/regex'in eslestigi kisimlar mavi cizilir.
+    m_highlightDelegate = new HighlightDelegate(this);
+    ui->resultTableView->setItemDelegateForColumn(
+        LogTableModel::MessageColumn, m_highlightDelegate);
 
     // Son dosyalar listesi: tekerlek varsayilan olarak 3 satir birden atlar,
     // 5 elemanlik listede bu "zipla" gibi hissettirir. Piksel bazli kaydirma +
@@ -528,6 +535,11 @@ void MainWindow::onSearchClicked()
             ? RegexLogParser::defaultTimestampFormat()
             : ui->timestampFormatLineEdit->text();
     }
+
+    // Sonuclar gelmeden once vurgulama desenini guncelle: tablo dolarken
+    // Mesaj sutunu bu desenle boyanacak. Arama kutusu bosken desen de bos
+    // kalir ve vurgulama kendiliginden devre disi olur.
+    m_highlightDelegate->setSearchPattern(searchPattern);
 
     m_tableModel->clear();
     m_lastStats = {};

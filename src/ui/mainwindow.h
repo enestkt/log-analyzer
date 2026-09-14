@@ -19,6 +19,7 @@ class QChart;
 class QChartView;
 template<typename T> class QFutureWatcher;
 class QListWidgetItem;
+class HighlightDelegate;
 class LogTableModel;
 class RecentFiles;
 struct GuiAnalysisResult;
@@ -54,6 +55,7 @@ private:
     QChart *m_chart;
     QChartView *m_chartView;
     LogTableModel *m_tableModel;
+    HighlightDelegate *m_highlightDelegate;
     QFutureWatcher<GuiAnalysisResult> *m_analysisWatcher;
     std::shared_ptr<std::atomic_bool> m_cancelRequested;
     quint64 m_selectionRevision = 0;

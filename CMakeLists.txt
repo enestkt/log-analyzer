@@ -68,6 +68,8 @@ qt_add_executable(LogAnalyzerGui
     src/ui/mainwindow.cpp
     src/ui/mainwindow.ui
     src/ui/resources.qrc
+    src/ui/HighlightDelegate.h
+    src/ui/HighlightDelegate.cpp
     src/ui/LogAnalysisWorker.h
     src/ui/LogAnalysisWorker.cpp
     src/ui/LogTableModel.h
@@ -122,6 +124,8 @@ if(BUILD_TESTING)
         src/ui/mainwindow.cpp
         src/ui/mainwindow.ui
         src/ui/resources.qrc
+        src/ui/HighlightDelegate.h
+        src/ui/HighlightDelegate.cpp
         src/ui/LogAnalysisWorker.h
         src/ui/LogAnalysisWorker.cpp
         src/ui/LogTableModel.h
