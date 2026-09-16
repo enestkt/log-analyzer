@@ -99,6 +99,21 @@ if(BUILD_TESTING)
             "PATH=$<TARGET_FILE_DIR:Qt6::Core>;${CXX_RUNTIME_DIR};$ENV{PATH}"
             "$<TARGET_FILE:LogFilterDateRangeTest>")
 
+    qt_add_executable(LogFilterSearchTest
+        tests/LogFilterSearchTest.cpp
+        src/core/LogFilter.h
+        src/core/LogFilter.cpp
+        src/core/LogEntry.h
+        src/core/LogLevel.h
+        src/core/LogLevel.cpp
+    )
+    target_include_directories(LogFilterSearchTest PRIVATE src)
+    target_link_libraries(LogFilterSearchTest PRIVATE Qt::Core)
+    add_test(NAME LogFilterSearchTest
+        COMMAND ${CMAKE_COMMAND} -E env
+            "PATH=$<TARGET_FILE_DIR:Qt6::Core>;${CXX_RUNTIME_DIR};$ENV{PATH}"
+            "$<TARGET_FILE:LogFilterSearchTest>")
+
     qt_add_executable(SyslogYearTest
         tests/SyslogYearTest.cpp
         ${CORE_SOURCES}

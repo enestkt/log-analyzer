@@ -240,7 +240,7 @@
             </size>
            </property>
            <property name="placeholderText">
-            <string>Mesaj içinde kelime veya regex ara</string>
+            <string>Satırda kelime veya regex ara</string>
            </property>
            <property name="clearButtonEnabled">
             <bool>true</bool>

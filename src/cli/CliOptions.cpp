@@ -30,7 +30,7 @@ bool CliOptions::parse(const QCoreApplication &app, QString &error)
                                               QStringLiteral("Yil icermeyen Syslog dosyasindaki ilk kaydin yili."),
                                               QStringLiteral("year"));
     const QCommandLineOption searchOption(QStringList{ "search" },
-                                          QStringLiteral("Mesaj icinde aranacak regex."), QStringLiteral("regex"));
+                                          QStringLiteral("Log satirinda aranacak regex."), QStringLiteral("regex"));
     const QCommandLineOption exportOption(QStringList{ "export" },
                                           QStringLiteral("Disa aktarma formati: csv veya json."), QStringLiteral("format"));
     const QCommandLineOption outputOption(QStringList{ "output" },

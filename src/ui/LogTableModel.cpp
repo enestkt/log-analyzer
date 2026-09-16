@@ -60,6 +60,12 @@ QVariant LogTableModel::data(const QModelIndex &index, int role) const
         }
     }
 
+    // Arama ham satira baktigi icin bir satir, Mesaj sutununda gorunmeyen bir
+    // alan (thread kimligi, kategori) sayesinde de eslesebilir. Ipucunda ham
+    // satirin tamami gosterilir, boylece satirin neden geldigi anlasilir.
+    if (role == Qt::ToolTipRole && index.column() == MessageColumn)
+        return entry.rawLine;
+
     if (role == Qt::ForegroundRole && index.column() == LevelColumn)
         return QBrush(levelColor(entry.level));
 

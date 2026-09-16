@@ -25,6 +25,7 @@ public:
     void setMinLevel(LogLevel level);
 
     // Gecersiz/bos pattern verilirse arama filtresi devre disi kalir.
+    // Arama sadece mesaja degil, ham log satirinin tamamina uygulanir.
     void setSearchPattern(const QRegularExpression &pattern);
 
     bool matches(const LogEntry &entry) const;

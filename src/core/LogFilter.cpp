@@ -57,19 +57,28 @@ bool fuzzyWordMatches(const QString &word, const QString &term)
     if (word.contains(term, Qt::CaseInsensitive))
         return true;
 
+    // Levenshtein mesafesi en az iki kelimenin uzunluk farki kadardir. Fark
+    // toleransi zaten asiyorsa pahali hesaba girmeye gerek yok; ham satirdaki
+    // hex kimlikler, uzun sinif adlari gibi kelimelerin cogu burada elenir.
+    const int threshold = fuzzyThreshold(term.length());
+    if (qAbs(word.length() - term.length()) > threshold)
+        return false;
+
     const int distance = levenshteinDistance(word.toLower(), term.toLower());
-    return distance <= fuzzyThreshold(term.length());
+    return distance <= threshold;
 }
 
 bool fuzzyContains(const QString &message, const QString &searchText)
 {
-    const QStringList terms = searchText.split(QRegularExpression(QStringLiteral("\\s+")),
-                                                Qt::SkipEmptyParts);
+    // Her satirda yeniden derlenmesinler diye bir kez olusturuluyor.
+    static const QRegularExpression whitespace(QStringLiteral("\\s+"));
+    static const QRegularExpression nonWord(QStringLiteral("\\W+"));
+
+    const QStringList terms = searchText.split(whitespace, Qt::SkipEmptyParts);
     if (terms.isEmpty())
         return true;
 
-    const QStringList words = message.split(QRegularExpression(QStringLiteral("\\W+")),
-                                             Qt::SkipEmptyParts);
+    const QStringList words = message.split(nonWord, Qt::SkipEmptyParts);
 
     for (const QString &term : terms) {
         bool found = false;
@@ -127,12 +136,18 @@ bool LogFilter::matches(const LogEntry &entry) const
     }
 
     if(m_searchPattern.isValid() && !m_searchPattern.pattern().isEmpty()) {
+        // Arama ham satirin tamamina bakar. Ayristiricilar thread kimligi,
+        // kategori gibi koseli parantezli alanlari mesajdan ayirip atiyor;
+        // yalnizca mesaja bakilsaydi kullanici dosyada gordugu metni
+        // bulamazdi (grep ile ayni davranis). Ham satiri olmayan, elle
+        // olusturulmus kayitlarda mesaja bakilir.
+        const QString &searchedText = entry.rawLine.isEmpty() ? entry.message : entry.rawLine;
         const QString rawSearchText = m_searchPattern.pattern();
         if (looksLikeRegex(rawSearchText)) {
-            if(!m_searchPattern.match(entry.message).hasMatch())
+            if(!m_searchPattern.match(searchedText).hasMatch())
                 return false;
         } else {
-            if(!fuzzyContains(entry.message, rawSearchText))
+            if(!fuzzyContains(searchedText, rawSearchText))
                 return false;
         }
     }
@@ -159,8 +174,8 @@ QVector<QPair<qsizetype, qsizetype>> LogFilter::highlightSpans(
         // Duz kelime modu: fuzzyContains ile ayni mantik, ama kelimelerin
         // mesaj icindeki KONUMLARINA da ihtiyacimiz oldugu icin split yerine
         // globalMatch ile geziyoruz.
-        const QStringList terms = rawSearchText.split(
-            QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+        static const QRegularExpression whitespace(QStringLiteral("\\s+"));
+        const QStringList terms = rawSearchText.split(whitespace, Qt::SkipEmptyParts);
         static const QRegularExpression wordPattern(
             QStringLiteral("\\w+"), QRegularExpression::UseUnicodePropertiesOption);
         QRegularExpressionMatchIterator words = wordPattern.globalMatch(message);
@@ -177,8 +192,9 @@ QVector<QPair<qsizetype, qsizetype>> LogFilter::highlightSpans(
                     break;
                 }
                 // Yazim hatasi toleransi: kelimenin tamamini boya.
-                if (levenshteinDistance(word.toLower(), term.toLower())
-                        <= fuzzyThreshold(term.length())) {
+                const int threshold = fuzzyThreshold(term.length());
+                if (qAbs(word.size() - term.size()) <= threshold
+                    && levenshteinDistance(word.toLower(), term.toLower()) <= threshold) {
                     spans.append({ wordMatch.capturedStart(0),
                                    qsizetype(word.size()) });
                     break;

@@ -14,7 +14,7 @@ Büyük log dosyalarını (cihaz logları, uygulama logları) satır satır okuy
 | Yapılandırılabilir format | Otomatik algılama yetmezse `--parser-pattern` (CLI) / pattern kutusu (GUI) ile herhangi bir formata elle uyarlanabilir |
 | Zaman aralığı filtresi | Belirli bir zaman penceresine daraltma (CLI: `--from`/`--to`, GUI: tarih aralığı seçici) |
 | Seviye eşiği filtresi | Bir seviye eşiği verildiğinde o seviye ve üstü gösterilir |
-| Metin arama | Mesaj içinde regex tabanlı arama; düz kelimelerde küçük yazım hatalarına (1-2 harf farkına) tolerans vardır |
+| Metin arama | Log satırının tamamında regex tabanlı arama (thread kimliği, kategori gibi köşeli parantezli alanlar dahil); düz kelimelerde küçük yazım hatalarına (1-2 harf farkına) tolerans vardır |
 | Çoklu dosya seçimi (GUI) | GUI'de birden fazla log dosyası birlikte seçilip aynı filtreyle taranabilir; farklı formatlı dosyalar bir arada seçilse bile her biri kendi formatına göre ayrı ayrı algılanır; sonuç tablosunda her satırın hangi dosyadan geldiği "Kaynak" sütununda görünür |
 | Grafik (GUI) | Seviyeye göre dağılım bar grafiği ile gösterilir |
 | Arka plan analizi (GUI) | Dosya okuma ve ayrıştırma `QtConcurrent` worker thread'inde çalışır; pencere analiz sırasında yanıt vermeye devam eder ve yeni dosya seçimi eski işi güvenli biçimde iptal eder |
@@ -112,7 +112,7 @@ LogAnalyzer --file <yol> [seçenekler]
 | `--from <zaman>` | Hayır | Başlangıç zamanı, ISO 8601 (`2026-08-12T06:00:00`) |
 | `--to <zaman>` | Hayır | Bitiş zamanı, ISO 8601 |
 | `--level <SEVIYE>` | Hayır | Minimum seviye eşiği: `TRACE`/`DEBUG`/`INFO`/`WARNING`/`ERROR`/`CRITICAL` |
-| `--search <regex>` | Hayır | Mesaj içinde aranacak regex; düz kelimelerde yazım hatasına tolerans vardır |
+| `--search <regex>` | Hayır | Log satırının tamamında aranacak regex; düz kelimelerde yazım hatasına tolerans vardır |
 | `--parser-pattern <regex>` | Hayır | Log formatını elle sabitler — verilmezse format otomatik algılanır. Verilirse `timestamp`/`level`/`message` adında yakalama grupları içermeli |
 | `--timestamp-format <format>` | Hayır | `--parser-pattern` ile birlikte kullanılır, Qt tarih format string'i |
 | `--syslog-year <yıl>` | Hayır | Klasik Syslog dosyasındaki ilk kaydın yılını elle sabitler; otomatik çıkarımı ve dosya tarihi tahminini geçersiz kılar |
