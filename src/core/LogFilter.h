@@ -28,6 +28,13 @@ public:
     // Arama sadece mesaja degil, ham log satirinin tamamina uygulanir.
     void setSearchPattern(const QRegularExpression &pattern);
 
+    // Hariç tutma: satir bu desenle eslesirse filtreden gecmez; bos/gecersiz
+    // desen devre disi birakir. Ham satirin tamamina uygulanir. Regex gorunumlu
+    // desen regex olarak calisir; duz metinde bosluklarla ayrilmis kelimelerden
+    // HERHANGI BIRINI iceren satir elenir. Yazim hatasi toleransi bilerek yok:
+    // benzer kelimeleri sessizce gizlemek aranan kaydin kacmasina yol acar.
+    void setExcludePattern(const QRegularExpression &pattern);
+
     bool matches(const LogEntry &entry) const;
 
     // Arama deseninin mesaj icinde eslestigi (baslangic, uzunluk) araliklarini
@@ -42,6 +49,7 @@ private:
     QDateTime m_to;
     LogLevel m_minLevel = LogLevel::Unknown;
     QRegularExpression m_searchPattern;
+    QRegularExpression m_excludePattern;
 
     //QDateTime,RegularExpression kendi kendini güvenli başlatan tipler
     //LogLevel ise bir enum class, arka planda düz bir sayı(int) gibi

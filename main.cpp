@@ -138,6 +138,7 @@ int main(int argc, char *argv[])
     filter.setTimeRange(options.fromTimestamp(), options.toTimestamp());
     filter.setMinLevel(options.minLevel());
     filter.setSearchPattern(options.searchPattern());
+    filter.setExcludePattern(options.excludePattern());
 
     LogStats stats;
     QVector<LogEntry> filteredEntries;

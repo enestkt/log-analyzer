@@ -31,6 +31,9 @@ bool CliOptions::parse(const QCoreApplication &app, QString &error)
                                               QStringLiteral("year"));
     const QCommandLineOption searchOption(QStringList{ "search" },
                                           QStringLiteral("Log satirinda aranacak regex."), QStringLiteral("regex"));
+    const QCommandLineOption excludeOption(QStringList{ "exclude" },
+                                           QStringLiteral("Bu regex'le eslesen ya da bosluklu kelimelerden herhangi birini iceren satirlari gizle."),
+                                           QStringLiteral("regex"));
     const QCommandLineOption exportOption(QStringList{ "export" },
                                           QStringLiteral("Disa aktarma formati: csv veya json."), QStringLiteral("format"));
     const QCommandLineOption outputOption(QStringList{ "output" },
@@ -44,6 +47,7 @@ bool CliOptions::parse(const QCoreApplication &app, QString &error)
     parser.addOption(timestampFormatOption);
     parser.addOption(syslogYearOption);
     parser.addOption(searchOption);
+    parser.addOption(excludeOption);
     parser.addOption(exportOption);
     parser.addOption(outputOption);
 
@@ -114,6 +118,14 @@ bool CliOptions::parse(const QCoreApplication &app, QString &error)
         m_searchPattern = QRegularExpression(parser.value(searchOption));
         if (!m_searchPattern.isValid()) {
             error = QStringLiteral("--search gecersiz: %1").arg(m_searchPattern.errorString());
+            return false;
+        }
+    }
+
+    if (parser.isSet(excludeOption)) {
+        m_excludePattern = QRegularExpression(parser.value(excludeOption));
+        if (!m_excludePattern.isValid()) {
+            error = QStringLiteral("--exclude gecersiz: %1").arg(m_excludePattern.errorString());
             return false;
         }
     }

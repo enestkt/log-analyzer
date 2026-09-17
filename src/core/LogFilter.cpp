@@ -94,6 +94,21 @@ bool fuzzyContains(const QString &message, const QString &searchText)
     return true;
 }
 
+bool excludeMatches(const QString &text, const QRegularExpression &pattern)
+{
+    const QString rawExcludeText = pattern.pattern();
+    if (looksLikeRegex(rawExcludeText))
+        return pattern.match(text).hasMatch();
+
+    static const QRegularExpression whitespace(QStringLiteral("\\s+"));
+    const QStringList terms = rawExcludeText.split(whitespace, Qt::SkipEmptyParts);
+    for (const QString &term : terms) {
+        if (text.contains(term, Qt::CaseInsensitive))
+            return true;
+    }
+    return false;
+}
+
 } // namespace
 
 void LogFilter::setTimeRange(const QDateTime &from, const QDateTime &to)
@@ -118,6 +133,11 @@ void LogFilter::setSearchPattern(const QRegularExpression &pattern)
     m_searchPattern = pattern;
 }
 
+void LogFilter::setExcludePattern(const QRegularExpression &pattern)
+{
+    m_excludePattern = pattern;
+}
+
 bool LogFilter::matches(const LogEntry &entry) const
 {
     if(!entry.isValid)
@@ -135,13 +155,20 @@ bool LogFilter::matches(const LogEntry &entry) const
             return false;
     }
 
+    // Arama ve hariç tutma ham satirin tamamina bakar. Ayristiricilar thread
+    // kimligi, kategori gibi koseli parantezli alanlari mesajdan ayirip atiyor;
+    // yalnizca mesaja bakilsaydi kullanici dosyada gordugu metni bulamazdi
+    // (grep ile ayni davranis). Ham satiri olmayan, elle olusturulmus
+    // kayitlarda mesaja bakilir.
+    const QString &searchedText = entry.rawLine.isEmpty() ? entry.message : entry.rawLine;
+
+    // Hariç tutma aramadan once: ucuz bir kontrol oldugu icin elenen satir
+    // pahali, yazim hatasi toleransli aramaya hic girmez.
+    if (m_excludePattern.isValid() && !m_excludePattern.pattern().isEmpty()
+        && excludeMatches(searchedText, m_excludePattern))
+        return false;
+
     if(m_searchPattern.isValid() && !m_searchPattern.pattern().isEmpty()) {
-        // Arama ham satirin tamamina bakar. Ayristiricilar thread kimligi,
-        // kategori gibi koseli parantezli alanlari mesajdan ayirip atiyor;
-        // yalnizca mesaja bakilsaydi kullanici dosyada gordugu metni
-        // bulamazdi (grep ile ayni davranis). Ham satiri olmayan, elle
-        // olusturulmus kayitlarda mesaja bakilir.
-        const QString &searchedText = entry.rawLine.isEmpty() ? entry.message : entry.rawLine;
         const QString rawSearchText = m_searchPattern.pattern();
         if (looksLikeRegex(rawSearchText)) {
             if(!m_searchPattern.match(searchedText).hasMatch())

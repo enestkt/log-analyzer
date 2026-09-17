@@ -29,6 +29,14 @@ bool searchMatches(const LogEntry &entry, const QString &pattern)
     return filter.matches(entry);
 }
 
+bool passes(const LogEntry &entry, const QString &search, const QString &exclude)
+{
+    LogFilter filter;
+    filter.setSearchPattern(QRegularExpression(search));
+    filter.setExcludePattern(QRegularExpression(exclude));
+    return filter.matches(entry);
+}
+
 bool expect(bool condition, const QString &message)
 {
     if (condition)
@@ -66,6 +74,24 @@ int main(int argc, char *argv[])
                  QStringLiteral("ham satir bossa mesajda aranmali"));
     ok &= expect(!searchMatches(manual, QStringLiteral("timeout")),
                  QStringLiteral("ham satir bossa mesajda olmayan kelime eslesmemeli"));
+
+    // Hariç tutma
+    ok &= expect(!passes(entry, QString(), QStringLiteral("SER/SETUP_THREAD_STARTED")),
+                 QStringLiteral("kategorisi hariç tutulan satir elenmeli"));
+    ok &= expect(passes(entry, QString(), QStringLiteral("UG/TICK")),
+                 QStringLiteral("satirda gecmeyen kategori hariç tutulunca satir kalmali"));
+    ok &= expect(!passes(entry, QString(), QStringLiteral("UG/TICK ALIVE setup_thread")),
+                 QStringLiteral("bosluklu kelimelerden herhangi biri (harf duyarsiz) eslesince elenmeli"));
+    ok &= expect(passes(entry, QString(), QStringLiteral("serialThx")),
+                 QStringLiteral("hariç tutmada yazim hatasi toleransi olmamali"));
+    ok &= expect(!passes(entry, QString(), QStringLiteral("SER/\\w+")),
+                 QStringLiteral("regex hariç tutma calismali"));
+    ok &= expect(!passes(entry, QStringLiteral("serialThr"), QStringLiteral("0x7f0f8eb03680")),
+                 QStringLiteral("arama eslesse bile hariç tutulan satir elenmeli"));
+    ok &= expect(passes(entry, QStringLiteral("serialThr"), QString()),
+                 QStringLiteral("bos hariç tutma deseni devre disi olmali"));
+    ok &= expect(!passes(manual, QString(), QStringLiteral("refused")),
+                 QStringLiteral("ham satir bossa hariç tutma mesaja bakmali"));
 
     return ok ? 0 : 1;
 }
