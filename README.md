@@ -18,6 +18,7 @@ Büyük log dosyalarını (cihaz logları, uygulama logları) satır satır okuy
 | Çoklu dosya seçimi (GUI) | GUI'de birden fazla log dosyası birlikte seçilip aynı filtreyle taranabilir; farklı formatlı dosyalar bir arada seçilse bile her biri kendi formatına göre ayrı ayrı algılanır; sonuç tablosunda her satırın hangi dosyadan geldiği "Kaynak" sütununda görünür |
 | Grafik (GUI) | Seviyeye göre dağılım bar grafiği ile gösterilir |
 | Arka plan analizi (GUI) | Dosya okuma ve ayrıştırma `QtConcurrent` worker thread'inde çalışır; pencere analiz sırasında yanıt vermeye devam eder ve yeni dosya seçimi eski işi güvenli biçimde iptal eder |
+| İlerleme ve iptal (GUI) | Analiz sürerken okunan dosya boyutuna göre ilerleme çubuğu ve yüzde gösterilir; **İptal** butonu çalışan analizi durdurur |
 | Sanal sonuç tablosu (GUI) | `QTableView` + `QAbstractTableModel` yalnızca görünür hücreleri üretir; büyük sonuç kümelerinde binlerce hücre widget'ı oluşturulmaz |
 | Son açılan dosyalar (GUI) | Son açılan dosyalar kalıcı olarak (`QSettings`) hatırlanır |
 | Yılsız Syslog desteği | Klasik Syslog satırında yıl yoksa önce dosya içindeki eşleşen tam tarih çapalarından ve dosya adındaki yıldan başlangıç yılı otomatik çıkarılır. Bunlar da yoksa son çare olarak dosyanın değiştirilme yılı kullanılır ve sonuç satırında **"TAHMİNİ"** olarak işaretlenir; `--syslog-year` ile her zaman elle geçersiz kılınabilir |

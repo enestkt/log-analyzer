@@ -38,6 +38,7 @@ private slots:
     void onExportClicked();
     void onRecentFileClicked(QListWidgetItem *item);
     void onAnalysisFinished();
+    void onCancelClicked();
 
 private:
     void refreshRecentFilesList();

@@ -22,6 +22,7 @@
 #include <QHeaderView>
 #include <QListWidgetItem>
 #include <QMessageBox>
+#include <QPromise>
 #include <QRegularExpression>
 #include <QScreen>
 #include <QScrollBar>
@@ -77,6 +78,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->exportButton->setProperty("secondary", true);
     ui->exportButton->setEnabled(false);
+    // Iptal butonu ve ilerleme cubugu sadece analiz surerken gorunur.
+    ui->cancelButton->setProperty("secondary", true);
+    ui->cancelButton->hide();
+    ui->analysisProgressBar->hide();
     ui->mainSplitter->setStretchFactor(0, 3);
     ui->mainSplitter->setStretchFactor(1, 2);
     ui->mainSplitter->setSizes({740, 500});
@@ -143,6 +148,19 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::onSearchClicked);
     connect(ui->exportButton, &QPushButton::clicked,
             this, &MainWindow::onExportClicked);
+    connect(ui->cancelButton, &QPushButton::clicked,
+            this, &MainWindow::onCancelClicked);
+    // Isci ilerlemeyi QPromise'e yazar; watcher main thread'e ait oldugu icin
+    // bu sinyal kuyruk uzerinden main'de islenir, cubuga dokunmak guvenlidir.
+    connect(m_analysisWatcher, &QFutureWatcher<GuiAnalysisResult>::progressValueChanged,
+            this, [this](int permille) {
+                ui->analysisProgressBar->setValue(permille);
+                if (ui->cancelButton->isEnabled()) {
+                    ui->resultCountLabel->setText(
+                        QStringLiteral("Dosyalar arka planda analiz ediliyor… %")
+                        + QString::number(permille / 10));
+                }
+            });
     connect(ui->recentFilesListWidget, &QListWidget::itemClicked,
             this, &MainWindow::onRecentFileClicked);
     connect(ui->dateRangeCheckBox, &QCheckBox::toggled,
@@ -335,6 +353,14 @@ void MainWindow::applyStyle()
             border-color: #94a3b8;
         }
 
+        QProgressBar {
+            background-color: #e2e8f0;
+            border: none;
+            border-radius: 3px;
+            max-height: 6px;
+        }
+        QProgressBar::chunk { background-color: #2563eb; border-radius: 3px; }
+
         QCheckBox { color: #334155; spacing: 8px; }
         QCheckBox#timePrecisionCheckBox { font-weight: 600; }
         QCheckBox#timePrecisionCheckBox:disabled { color: #94a3b8; }
@@ -419,6 +445,19 @@ void MainWindow::cancelActiveAnalysis()
 {
     if (m_cancelRequested)
         m_cancelRequested->store(true, std::memory_order_relaxed);
+}
+
+void MainWindow::onCancelClicked()
+{
+    if (!m_analysisWatcher->isRunning())
+        return;
+
+    // Isci bayragi en gec 256 satir sonra gorup kendisi cikar. Sonuc geldiginde
+    // onAnalysisFinished "iptal edildi" durumunu gosterir.
+    cancelActiveAnalysis();
+    ui->cancelButton->setEnabled(false);
+    ui->statusPillLabel->setText(QStringLiteral("İptal ediliyor"));
+    ui->resultCountLabel->setText(QStringLiteral("Analiz iptal ediliyor…"));
 }
 
 void MainWindow::clearResultsForNewSelection()
@@ -549,16 +588,31 @@ void MainWindow::onSearchClicked()
     ui->searchButton->setEnabled(false);
     ui->openFileButton->setEnabled(true);
     ui->exportButton->setEnabled(false);
+    ui->analysisProgressBar->setValue(0);
+    ui->analysisProgressBar->show();
+    ui->cancelButton->setEnabled(true);
+    ui->cancelButton->show();
 
     m_cancelRequested = std::make_shared<std::atomic_bool>(false);
     m_analysisRevision = m_selectionRevision;
+    // QPromise'li run: isci ilerlemeyi promise'e yazar, sonucu da promise'e
+    // ekler. Main tarafi ikisini ayni QFutureWatcher uzerinden alir.
     m_analysisWatcher->setFuture(QtConcurrent::run(
-        &LogAnalysisWorker::run, std::move(request), m_cancelRequested));
+        [](QPromise<GuiAnalysisResult> &promise, GuiAnalysisRequest analysisRequest,
+           const std::shared_ptr<std::atomic_bool> &cancelRequested) {
+            promise.setProgressRange(0, 1000);
+            promise.addResult(LogAnalysisWorker::run(
+                std::move(analysisRequest), cancelRequested,
+                [&promise](int permille) { promise.setProgressValue(permille); }));
+        },
+        std::move(request), m_cancelRequested));
 }
 
 void MainWindow::onAnalysisFinished()
 {
     ui->searchButton->setEnabled(true);
+    ui->cancelButton->hide();
+    ui->analysisProgressBar->hide();
     GuiAnalysisResult result;
     try {
         result = m_analysisWatcher->future().takeResult();
@@ -594,9 +648,10 @@ void MainWindow::onAnalysisFinished()
         return;
     }
 
+    // Secim numarasi ayni ama sonuc iptal edilmis: kullanici Iptal butonuna basti.
     if (result.cancelled) {
-        ui->statusPillLabel->setText(QStringLiteral("Yeni dosya hazır"));
-        ui->resultCountLabel->setText(QStringLiteral("Önceki analiz iptal edildi"));
+        ui->statusPillLabel->setText(QStringLiteral("İptal edildi"));
+        ui->resultCountLabel->setText(QStringLiteral("Analiz iptal edildi"));
         return;
     }
 

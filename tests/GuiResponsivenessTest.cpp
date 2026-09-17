@@ -6,7 +6,9 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QImage>
+#include <QLabel>
 #include <QListWidget>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QTableView>
 #include <QTemporaryFile>
@@ -163,6 +165,52 @@ int main(int argc, char *argv[])
         return 12;
     if (!cancelResults->model() || cancelResults->model()->rowCount() != 0)
         return 13;
+
+    // Iptal butonu ve ilerleme cubugu: bosta gizli, analiz surerken gorunur.
+    // Butona basilinca analiz durmali ve bitince ikisi de tekrar gizlenmeli.
+    // Dosya, iptal isteginden once bitemeyecek kadar buyuk secildi.
+    QTemporaryFile bigLogFile;
+    if (!bigLogFile.open())
+        return 22;
+    QTextStream bigOutput(&bigLogFile);
+    for (int i = 0; i < 300000; ++i)
+        bigOutput << "[2026-08-12 12:34:56] INFO: cancel test line " << i << '\n';
+    bigOutput.flush();
+    const QString bigLogPath = bigLogFile.fileName();
+    bigLogFile.close();
+
+    MainWindow progressWindow;
+    auto *progressList = progressWindow.findChild<QListWidget *>(QStringLiteral("recentFilesListWidget"));
+    auto *progressResults = progressWindow.findChild<QTableView *>(QStringLiteral("resultTableView"));
+    auto *progressSearch = progressWindow.findChild<QPushButton *>(QStringLiteral("searchButton"));
+    auto *cancelButton = progressWindow.findChild<QPushButton *>(QStringLiteral("cancelButton"));
+    auto *progressBar = progressWindow.findChild<QProgressBar *>(QStringLiteral("analysisProgressBar"));
+    auto *countLabel = progressWindow.findChild<QLabel *>(QStringLiteral("resultCountLabel"));
+    if (!progressList || !progressResults || !progressSearch || !cancelButton || !progressBar
+        || !countLabel)
+        return 23;
+    if (!cancelButton->isHidden() || !progressBar->isHidden())
+        return 24;
+
+    auto *bigItem = new QListWidgetItem(QStringLiteral("big.log"), progressList);
+    bigItem->setData(Qt::UserRole, bigLogPath);
+    if (!QMetaObject::invokeMethod(&progressWindow, "onRecentFileClicked", Qt::DirectConnection,
+                                   Q_ARG(QListWidgetItem *, bigItem)))
+        return 25;
+    if (!QMetaObject::invokeMethod(&progressWindow, "onSearchClicked", Qt::DirectConnection))
+        return 26;
+    if (cancelButton->isHidden() || !cancelButton->isEnabled() || progressBar->isHidden())
+        return 27;
+    if (!QMetaObject::invokeMethod(&progressWindow, "onCancelClicked", Qt::DirectConnection))
+        return 28;
+    if (!waitForAnalysis(progressSearch))
+        return 29;
+    if (!cancelButton->isHidden() || !progressBar->isHidden())
+        return 30;
+    if (!progressResults->model() || progressResults->model()->rowCount() != 0)
+        return 31;
+    if (countLabel->text() != QStringLiteral("Analiz iptal edildi"))
+        return 32;
 
     return 0;
 }

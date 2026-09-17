@@ -6,6 +6,7 @@
 #include <QStringList>
 #include <QVector>
 #include <atomic>
+#include <functional>
 #include <memory>
 
 #include "../core/LogEntry.h"
@@ -43,6 +44,10 @@ struct GuiAnalysisResult
 class LogAnalysisWorker
 {
 public:
+    // progress: binde (0-1000) ilerleme bildirimi, bos birakilabilir. Deger
+    // degistiginde ISCI THREAD'INDEN cagrilir; arayuze dogrudan dokunmamali,
+    // haberi main thread'e iletmelidir (MainWindow bunu QPromise ile yapar).
     static GuiAnalysisResult run(GuiAnalysisRequest request,
-                                 const std::shared_ptr<std::atomic_bool> &cancelRequested);
+                                 const std::shared_ptr<std::atomic_bool> &cancelRequested,
+                                 const std::function<void(int)> &progress = {});
 };
