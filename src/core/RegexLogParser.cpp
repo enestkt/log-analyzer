@@ -1,5 +1,6 @@
 #include "RegexLogParser.h"
 #include <QStringList>
+#include "DateTimeParsing.h"
 #include "LogEntry.h"
 #include "LogLevel.h"
 
@@ -59,7 +60,7 @@ bool RegexLogParser::parseLine(const QString &line, LogEntry &out) const
         return false;
     }
 
-    const QDateTime timestamp = QDateTime::fromString(match.captured("timestamp"), m_timestampFormat);
+    const QDateTime timestamp = DateTimeParsing::parse(match.captured("timestamp"), m_timestampFormat);
 
     out.timestamp = timestamp;
     out.level = logLevelFromString(match.captured("level"));

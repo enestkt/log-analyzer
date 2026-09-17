@@ -4,6 +4,7 @@
 #include <QRegularExpression>
 #include <QVector>
 
+#include "DateTimeParsing.h"
 #include "LogEntry.h"
 #include "LogLevel.h"
 
@@ -103,7 +104,7 @@ bool GenericHeuristicParser::parseLine(const QString &line, LogEntry &out) const
 
     QString normalizedTimestamp = timestampText;
     normalizedTimestamp.replace(QLatin1Char(','), QLatin1Char('.'));
-    const QDateTime timestamp = QDateTime::fromString(normalizedTimestamp, timestampFormat);
+    const QDateTime timestamp = DateTimeParsing::parse(normalizedTimestamp, timestampFormat);
 
     out.timestamp = timestamp;
     out.level = level;

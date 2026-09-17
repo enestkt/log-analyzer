@@ -5,6 +5,7 @@
 #include <QRegularExpression>
 #include <QStringList>
 
+#include "DateTimeParsing.h"
 #include "LogEntry.h"
 #include "LogLevel.h"
 
@@ -60,7 +61,7 @@ bool SyslogParser::parseLine(const QString &line, LogEntry &out) const
     m_previousMonth = month;
 
     const int year = m_currentYear;
-    const QDateTime timestamp = QDateTime::fromString(
+    const QDateTime timestamp = DateTimeParsing::parse(
         QStringLiteral("%1-%2-%3 %4")
             .arg(year)
             .arg(month, 2, 10, QLatin1Char('0'))
