@@ -16,3 +16,6 @@ out*.json
 # Third-party test data (not ours to redistribute) - see README for source
 Hadoop_2k.log
 Linux.log
+
+# Cihaz loglari (gercek cihaz verisi, repoya girmemeli)
+statusLog/
