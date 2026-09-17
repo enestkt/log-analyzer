@@ -47,7 +47,8 @@ int inferSyslogYear(const QString &filePath,
 } // namespace
 
 GuiAnalysisResult LogAnalysisWorker::run(
-    GuiAnalysisRequest request, const std::shared_ptr<std::atomic_bool> &cancelRequested)
+    GuiAnalysisRequest request, const std::shared_ptr<std::atomic_bool> &cancelRequested,
+    const std::function<void(int)> &progress)
 {
     GuiAnalysisResult result;
     result.fileCount = request.filePaths.size();
@@ -61,6 +62,24 @@ GuiAnalysisResult LogAnalysisWorker::run(
 
     LogStats stats;
     qsizetype linesSinceCancelCheck = 0;
+
+    // Ilerleme = okunan bayt / secilen butun dosyalarin toplam boyutu (binde).
+    // Sadece deger degistiginde bildirilir; binde birlik adimlarla en fazla
+    // 1000 bildirim olur, Qt de bunlari main'e saniyede en fazla 25 kez iletir.
+    qint64 totalBytes = 0;
+    for (const QString &filePath : std::as_const(request.filePaths))
+        totalBytes += QFileInfo(filePath).size();
+    qint64 finishedFilesBytes = 0;
+    int lastPermille = -1;
+    const auto reportProgress = [&](qint64 bytesDone) {
+        if (!progress || totalBytes <= 0)
+            return;
+        const int permille = int(qMin<qint64>(1000, bytesDone * 1000 / totalBytes));
+        if (permille != lastPermille) {
+            lastPermille = permille;
+            progress(permille);
+        }
+    };
 
     for (const QString &filePath : std::as_const(request.filePaths)) {
         if (cancelRequested->load(std::memory_order_relaxed)) {
@@ -138,6 +157,7 @@ GuiAnalysisResult LogAnalysisWorker::run(
                     result.cancelled = true;
                     return result;
                 }
+                reportProgress(finishedFilesBytes + reader.bytesRead());
             }
 
             const QString line = reader.readLine();
@@ -157,6 +177,8 @@ GuiAnalysisResult LogAnalysisWorker::run(
             }
         }
         reader.close();
+        finishedFilesBytes += QFileInfo(filePath).size();
+        reportProgress(finishedFilesBytes);
     }
 
     result.stats = stats.result();

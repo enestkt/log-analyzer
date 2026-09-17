@@ -13,6 +13,11 @@ public:
     QString readLine() override;
     void close() override;
 
+    // Dosyadan su ana kadar okunan bayt. QTextStream kendi tamponuna onceden
+    // okudugu icin islenen satirlardan en fazla bir tampon kadar ileride olabilir;
+    // ilerleme gostermek icin bu hassasiyet yeterli.
+    qint64 bytesRead() const { return m_file.pos(); }
+
 private:
     QFile m_file;
     QTextStream m_stream;
