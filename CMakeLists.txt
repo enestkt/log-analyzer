@@ -18,6 +18,8 @@ set(CORE_SOURCES
     src/core/ILogParser.h
     src/core/RegexLogParser.h
     src/core/RegexLogParser.cpp
+    src/core/DateTimeParsing.h
+    src/core/DateTimeParsing.cpp
     src/core/GenericHeuristicParser.h
     src/core/GenericHeuristicParser.cpp
     src/core/SyslogParser.h
@@ -113,6 +115,18 @@ if(BUILD_TESTING)
         COMMAND ${CMAKE_COMMAND} -E env
             "PATH=$<TARGET_FILE_DIR:Qt6::Core>;${CXX_RUNTIME_DIR};$ENV{PATH}"
             "$<TARGET_FILE:LogFilterSearchTest>")
+
+    qt_add_executable(DateTimeParsingTest
+        tests/DateTimeParsingTest.cpp
+        src/core/DateTimeParsing.h
+        src/core/DateTimeParsing.cpp
+    )
+    target_include_directories(DateTimeParsingTest PRIVATE src)
+    target_link_libraries(DateTimeParsingTest PRIVATE Qt::Core)
+    add_test(NAME DateTimeParsingTest
+        COMMAND ${CMAKE_COMMAND} -E env
+            "PATH=$<TARGET_FILE_DIR:Qt6::Core>;${CXX_RUNTIME_DIR};$ENV{PATH}"
+            "$<TARGET_FILE:DateTimeParsingTest>")
 
     qt_add_executable(SyslogYearTest
         tests/SyslogYearTest.cpp
