@@ -495,6 +495,14 @@ void MainWindow::onSearchClicked()
         return;
     }
 
+    const QRegularExpression excludePattern(ui->excludeLineEdit->text());
+    if (!ui->excludeLineEdit->text().isEmpty() && !excludePattern.isValid()) {
+        QMessageBox::critical(this, QStringLiteral("Hariç tutma hatası"),
+                              QStringLiteral("Hariç tutma regex'i geçersiz: %1")
+                                  .arg(excludePattern.errorString()));
+        return;
+    }
+
     QDateTime fromDateTime;
     QDateTime toDateTime;
     if (ui->dateRangeCheckBox->isChecked()) {
@@ -520,6 +528,7 @@ void MainWindow::onSearchClicked()
     GuiAnalysisRequest request;
     request.filePaths = m_filePaths;
     request.searchPattern = searchPattern;
+    request.excludePattern = excludePattern;
     request.dateRangeEnabled = ui->dateRangeCheckBox->isChecked();
     request.fromDateTime = fromDateTime;
     request.toDateTime = toDateTime;

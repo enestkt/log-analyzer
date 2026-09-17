@@ -15,6 +15,7 @@ Büyük log dosyalarını (cihaz logları, uygulama logları) satır satır okuy
 | Zaman aralığı filtresi | Belirli bir zaman penceresine daraltma (CLI: `--from`/`--to`, GUI: tarih aralığı seçici) |
 | Seviye eşiği filtresi | Bir seviye eşiği verildiğinde o seviye ve üstü gösterilir |
 | Metin arama | Log satırının tamamında regex tabanlı arama (thread kimliği, kategori gibi köşeli parantezli alanlar dahil); düz kelimelerde küçük yazım hatalarına (1-2 harf farkına) tolerans vardır |
+| Hariç tutma | Boşlukla ayrılmış kelimelerden herhangi birini (ya da bir regex'i) içeren satırlar gizlenir (GUI: "Hariç tut" kutusu, CLI: `--exclude`). Gürültülü, tekrarlayan kayıtları ayıklamak için. Benzer kelimelerin sessizce gizlenmemesi için yazım hatası toleransı bilerek yoktur |
 | Çoklu dosya seçimi (GUI) | GUI'de birden fazla log dosyası birlikte seçilip aynı filtreyle taranabilir; farklı formatlı dosyalar bir arada seçilse bile her biri kendi formatına göre ayrı ayrı algılanır; sonuç tablosunda her satırın hangi dosyadan geldiği "Kaynak" sütununda görünür |
 | Grafik (GUI) | Seviyeye göre dağılım bar grafiği ile gösterilir |
 | Arka plan analizi (GUI) | Dosya okuma ve ayrıştırma `QtConcurrent` worker thread'inde çalışır; pencere analiz sırasında yanıt vermeye devam eder ve yeni dosya seçimi eski işi güvenli biçimde iptal eder |
@@ -94,7 +95,7 @@ Qt Creator kullanıyorsan projeyi açman ve normal şekilde derlemen (Ctrl+B) ye
 ## Kullanım — GUI (`LogAnalyzerGui`)
 
 1. **Dosya(lar) Seç** — Ctrl/Shift ile birden fazla log dosyası seçilebilir; ya da "Son Açılan Dosyalar" listesinden tek bir dosyaya tıklanabilir.
-2. Aranacak kelime/regex, parser pattern, zaman damgası formatı ve minimum seviye alanları CLI'deki `--search`/`--parser-pattern`/`--timestamp-format`/`--level` ile birebir aynı işi görür. Pattern kutusu **boş bırakılırsa** format otomatik algılanır (yukarıya bakın).
+2. Aranacak kelime/regex, hariç tutulacak kelimeler, parser pattern, zaman damgası formatı ve minimum seviye alanları CLI'deki `--search`/`--exclude`/`--parser-pattern`/`--timestamp-format`/`--level` ile birebir aynı işi görür. Pattern kutusu **boş bırakılırsa** format otomatik algılanır (yukarıya bakın).
 3. **Tarih aralığı** kutucuğunu işaretleyip başlangıç/bitiş tarihlerini seçerek belirli bir zaman penceresine daraltabilirsin. Varsayılan olarak iki günün tamamı kapsanır. **Saat belirt** açılırsa `HH:mm` hassasiyetinde filtre uygulanır; bitiş dakikasının tamamı dahildir. **Son 15 dakika**, **Son 1 saat**, **Bugün** ve **Son 24 saat** hızlı seçimleri de kullanılabilir.
 4. **Ara** — seçilen tüm dosyalar sırayla okunur, aynı filtreden geçirilir; sonuç tablosunda her satırın hangi dosyadan geldiği "Kaynak" sütununda görünür, sağ tarafta seviyeye göre dağılım grafiği güncellenir.
    Klasik Syslog biçiminde başlıkta yıl bulunmadığında uygulama, mesajlarda aynı ay/gün/saatle tekrarlanan tam tarihleri güvenilir çapa kabul ederek başlangıç yılını otomatik çıkarır. Kronolojik kayıtlarda Aralık'tan Ocak'a geçiş yeni yıl olarak işlenir. Ne içerikte çapa ne de dosya adında yıl varsa, son çare olarak dosyanın değiştirilme yılı kullanılır ve format adının yanında "TAHMİNİ" ibaresi gösterilir — ay/gün/saat yine dosyadan birebir alınır, yalnızca yıl tahmindir.
@@ -113,6 +114,7 @@ LogAnalyzer --file <yol> [seçenekler]
 | `--to <zaman>` | Hayır | Bitiş zamanı, ISO 8601 |
 | `--level <SEVIYE>` | Hayır | Minimum seviye eşiği: `TRACE`/`DEBUG`/`INFO`/`WARNING`/`ERROR`/`CRITICAL` |
 | `--search <regex>` | Hayır | Log satırının tamamında aranacak regex; düz kelimelerde yazım hatasına tolerans vardır |
+| `--exclude <regex>` | Hayır | Bu regex'le eşleşen ya da boşlukla ayrılmış kelimelerden herhangi birini içeren satırları gizler; yazım hatası toleransı yoktur |
 | `--parser-pattern <regex>` | Hayır | Log formatını elle sabitler — verilmezse format otomatik algılanır. Verilirse `timestamp`/`level`/`message` adında yakalama grupları içermeli |
 | `--timestamp-format <format>` | Hayır | `--parser-pattern` ile birlikte kullanılır, Qt tarih format string'i |
 | `--syslog-year <yıl>` | Hayır | Klasik Syslog dosyasındaki ilk kaydın yılını elle sabitler; otomatik çıkarımı ve dosya tarihi tahminini geçersiz kılar |
@@ -129,6 +131,9 @@ LogAnalyzer --file uygulama.log
 
 # Otomatik yil cikarimi olmayan bir Syslog dosyasinda istege bagli yil override'i
 LogAnalyzer --file auth.log --syslog-year 2007
+
+# Gurultulu kayitlari gizleyerek ara: SETUP gecen ama UG/TICK ya da ALIVE gecmeyen satirlar
+LogAnalyzer --file statusLog.txt --search SETUP --exclude "UG/TICK ALIVE"
 
 # Sadece WARNING ve üstünü CSV'ye aktar
 LogAnalyzer --file uygulama.log --level WARNING --export csv --output ozet.csv

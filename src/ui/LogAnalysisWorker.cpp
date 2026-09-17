@@ -55,6 +55,7 @@ GuiAnalysisResult LogAnalysisWorker::run(
 
     LogFilter filter;
     filter.setSearchPattern(request.searchPattern);
+    filter.setExcludePattern(request.excludePattern);
     filter.setMinLevel(request.minimumLevel);
     if (request.dateRangeEnabled)
         filter.setTimeRange(request.fromDateTime, request.toDateTime);

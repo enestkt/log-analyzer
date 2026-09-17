@@ -16,6 +16,7 @@ struct GuiAnalysisRequest
 {
     QStringList filePaths;
     QRegularExpression searchPattern;
+    QRegularExpression excludePattern;
     LogLevel minimumLevel = LogLevel::Unknown;
     bool dateRangeEnabled = false;
     QDateTime fromDateTime;

@@ -26,6 +26,7 @@ public:
     int syslogYear() const { return m_syslogYear; }
 
     QRegularExpression searchPattern() const { return m_searchPattern; }
+    QRegularExpression excludePattern() const { return m_excludePattern; }
 
     bool exportRequested() const { return !m_exportFormat.isEmpty(); }
     QString exportFormat() const { return m_exportFormat; }
@@ -44,6 +45,7 @@ private:
     QString m_timestampFormat;
     int m_syslogYear = 0;
     QRegularExpression m_searchPattern;
+    QRegularExpression m_excludePattern;
     QString m_exportFormat;
     QString m_outputPath;
 };
